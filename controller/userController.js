@@ -39,13 +39,31 @@ exports.register = asyncHandler(async (req, res) => {
         let user = await userRepository.retrieveOne({ email: email })
         console.log(user)
         if (user == null ) {
-            user = await userRepository.create({ email: email, first_name: name, image_url: picture, is_google_linked: true });
+            user = await userRepository.create({ email: email, first_name: name, image_url: picture, is_google_linked: true ,google_id:googleUserData.sub });
         } else {
+            user.google_id = googleUserData.sub;
             user.is_google_linked = true;
             user.image_url=picture;
             await user.save();
         }
-        return res.status(200).json(responseHandler(true, 200, "succesful", null))
+        const payload = {
+            user:{
+                user_id:user.user_id,
+                first_name:user.first_name,
+                email:user.email,
+                image_url:user.image_url,
+                is_admin :user.is_admin
+            }
+
+        }
+        return getJwtToken(payload, "succesful",600, (err, data) => {
+            if (err) {
+                return res.status(err.code).json(err);
+            }
+            console.log(user)
+            console.log(data);
+            return res.status(200).json({ ...data, name: user.first_name, email: user.email,is_admin:user.is_admin })
+        })
     }
 
     try {
@@ -100,7 +118,7 @@ exports.login = async (req, res, next) => {
         let user = await userRepository.retrieveOne({ email: email })
         const payload = {
             user: {
-                id: user.user_id,
+                user_id: user.user_id,
                 is_admin: user.is_admin
             }
         }
@@ -109,7 +127,7 @@ exports.login = async (req, res, next) => {
                 if (err) {
                     return res.status(err.code).json(responseHandler(false, err.code, err.message, null));
                 }
-                return res.status(200).json({ ...data, name: user.first_name, email: user.email })
+                return res.status(200).json({ ...data, name: user.first_name, email: user.email,is_admin:user.is_admin })
             });
         }
         return res.status(400).json(responseHandler(false,400,"not registred with google",null))
@@ -140,7 +158,7 @@ exports.login = async (req, res, next) => {
                 if (err) {
                     return res.status(err.code).json(err);
                 }
-                return res.status(200).json({ ...data, name: user.first_name, email: user.email })
+                return res.status(200).json({ ...data, name: user.first_name, email: user.email,is_admin:user.is_admin })
             })
         }
         return res.status(400).json(responseHandler(false, 400, "failed", null));

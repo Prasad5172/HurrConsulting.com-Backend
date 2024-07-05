@@ -95,7 +95,7 @@ exports.mailTransporter = async (isFormData,data,otp,result) => {
             pass: process.env.REACT_APP_PASSWORD
         }
     });
-    console.log(data.email);
+    // console.log(data.email);
     var mailOptions = {
         from: process.env.REACT_APP_USER,
         to: data.email,

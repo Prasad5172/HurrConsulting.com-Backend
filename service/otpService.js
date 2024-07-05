@@ -5,29 +5,39 @@ const { otpRepository } = require("../repository")
 const Otp = (model) => ({
     sms: model.sms,
     user_id: model.user_id,
-    expires_in:model.expires_in
 })
 
 exports.create = async (newUser) => {
-    console.log("otpRepository create")
-    const otpHash = await bcryptjs.hash(newUser.sms, 10)
+    console.log("otpRepository create");
+    const otpHash = await bcryptjs.hash(newUser.sms, 10);
     newUser.sms = otpHash;
-    var otpInDb = await OtpModel.findOne({ where : { user_id: newUser.user_id } })
-    console.log("otpInDb" + otpInDb)
+    
+    let otpInDb = await OtpModel.findOne({ where: { user_id: newUser.user_id } });
+    console.log("otpInDb", otpInDb);
+
+    const date = new Date();
+    console.log(date);
+    date.setMinutes(date.getMinutes() + 10);
+    console.log("at otp create", date);
+
     if (otpInDb) {
-        otpInDb.sms = otpHash
-        const date = new Date();
-        date.setMinutes(date.getMinutes() + 10);
-        console.log("at otp create",date);
+        otpInDb.sms = otpHash;
         otpInDb.expires_in = date;
-        return await otpInDb.save()
+        return await otpInDb.save();
     } else {
-        otpInDb = await otpRepository.create(Otp(newUser)).catch((error) => {
-            // console.log(error.message)
-            throw new Error("some error ocurred while registering the user.")
-        })
+        try {
+            otpInDb = await OtpModel.create({
+                sms: newUser.sms,
+                user_id: newUser.user_id,
+                expires_in: date
+            });
+            console.log(otpInDb.expires_in);
+        } catch (error) {
+            console.error("Error creating OTP:", error.message);
+            throw new Error("Some error occurred while registering the user.");
+        }
     }
-}
+};
 
 
 exports.retriveOtp = async (id) => {

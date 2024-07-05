@@ -11,7 +11,7 @@ exports.verifyOtp = async (req,res,next) => {
     // let user = await userRepository.retrieveOne({email:email})
     let user = await UserModel.findOne({
         where:{email:email},
-        attributes:["user_id","email"],
+        attributes:["user_id","email","first_name"],
         include:[
             {
                 model:OtpModel,
@@ -28,6 +28,7 @@ exports.verifyOtp = async (req,res,next) => {
     const curDate = new Date().getTime();
     const expiresIn = user.otp.expires_in;
     console.log(expiresIn);
+    console.log(curDate);
     // Check if OTP has expired
     if ( curDate > expiresIn ) {
         return res.status(400).json("OTP has expired");
@@ -49,7 +50,9 @@ exports.verifyOtp = async (req,res,next) => {
             if (err) {
                 return res.status(err.code).json(err);
             }
-            return res.status(200).json({ ...data, name: user.first_name, email: user.email })
+            console.log(user)
+            console.log(data);
+            return res.status(200).json({ ...data, name: user.first_name, email: user.email,is_admin:user.is_admin })
         })
     }
     else {

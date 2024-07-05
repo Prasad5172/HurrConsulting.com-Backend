@@ -211,6 +211,26 @@ app.get("/succesful", async (req, res) => {
   )
 });
 
+// Example for fetching available time slots
+app.get('/api/time-slots', (req, res) => {
+  const timeSlots = [
+    { id: 1, time: '10:00 AM' },
+    { id: 2, time: '11:00 AM' },
+    { id: 3, time: '02:00 PM' },
+  ];
+  res.json(timeSlots);
+});
+
+// Example for creating an appointment
+app.post('/api/bookevent', (req, res) => {
+  const { name, email, phone, problem, slot } = req.body;
+  return res.json(req.body);
+  // Save appointment to the database
+
+  // Send Google Calendar invite
+
+  res.status(201).json({ message: 'Appointment created successfully' });
+});
 
 app.listen(8000, () => {
   console.log("Server listening on port 8000");
