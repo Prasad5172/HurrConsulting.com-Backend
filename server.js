@@ -10,11 +10,46 @@ const { authenticate } = require('@google-cloud/local-auth');
 const { google } = require('googleapis');
 const { v4: uuid } = require('uuid');
 const stripe = require('stripe')(`${process.env.STRIPE_SECRET_KEY}`);
+const bodyParser = require("body-parser")
 
 // Configure CORS to allow requests from http://localhost:3000
 const corsOptions = {
   origin: 'http://localhost:3000',
 };
+app.post('/webhook', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
+  console.log("webhook")
+  const sig = req.headers['stripe-signature'];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.log(err.message)
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  if (event.type === 'payment_intent.succeeded') {
+    const paymentIntent = event.data.object;
+    // Handle successful payment here and create calendar event
+    const appointmentData = paymentIntent.metadata;
+
+    const auth = await authorize();
+    const eventData = {
+      summary: appointmentData.summary,
+      description: appointmentData.description,
+      start: { dateTime: appointmentData.start, timeZone: 'Asia/Kolkata' },
+      end: { dateTime: appointmentData.end, timeZone: 'Asia/Kolkata' },
+      attendees: [{ email: appointmentData.attendeeEmail }],
+    };
+
+    const calendarEvent = await addEvent(auth, eventData);
+    console.log('Calendar Event Created:', calendarEvent);
+  }
+
+  res.status(200).json({ received: true });
+});
+
+
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -27,7 +62,7 @@ const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
 
 async function loadSavedCredentialsIfExist() {
   try {
-    const content = await fs.readFileSync(TOKEN_PATH);
+    const content = fs.readFileSync(TOKEN_PATH);
     const credentials = JSON.parse(content);
     return google.auth.fromJSON(credentials);
   } catch (err) {
@@ -36,7 +71,7 @@ async function loadSavedCredentialsIfExist() {
 }
 
 async function saveCredentials(client) {
-  const content = await fs.readFileSync(CREDENTIALS_PATH);
+  const content = fs.readFileSync(CREDENTIALS_PATH);
   const keys = JSON.parse(content);
   const key = keys.installed || keys.web;
   const payload = JSON.stringify({
@@ -147,7 +182,7 @@ app.post("/addEvent", async (req, res) => {
   } catch (error) {
     console.error("Error creating event", error);
     res.status(500).send("Error creating event");
-  }
+  }sk_test_51PX2c7AsL5ZInC8Z0ki5aWg1nxCG7UqC07gpK55XqNxzL3rkw9HmB2a5kwJX0P1nM9OLIo79zqy4kGdQOaVwe8Rc00E6Vf2p3n
 });
 
 
@@ -189,7 +224,10 @@ app.get("/listEvents", async (req, res) => {
   }
 });
 
+
+
 app.post("/create-payment-intent", async (req, res) => {
+  console.log("create-payment-intent")
   const { items } = req.body;
 
   // Create a PaymentIntent with the order amount and currency
@@ -198,18 +236,40 @@ app.post("/create-payment-intent", async (req, res) => {
     currency: "usd",
     
   });
-
+  console.log(paymentIntent.client_secret)
   res.send({
     clientSecret: paymentIntent.client_secret,
   });
 });
-app.get("/succesful", async (req, res) => {
-  res.status(200).json(
-    {
-      msg:"succesful"
-    }
-  )
+
+
+
+
+app.post('/api/bookevent', async (req, res) => {
+  const { name, email, phone, problem, date, slot } = req.body;
+
+  // Create payment intent with appointment details as metadata
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: 1000, // Amount in cents
+      currency: 'usd',
+      metadata: {
+        summary: `Appointment with ${name}`,
+        description: problem,
+        start: new Date(date + 'T' + slot).toISOString(),
+        end: new Date(date + 'T' + slot).toISOString(), // Example duration
+        attendeeEmail: email,
+      },
+    });
+
+    res.send({
+      clientSecret: paymentIntent.client_secret,
+    });
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
 });
+
 
 // Example for fetching available time slots
 app.get('/api/time-slots', (req, res) => {
@@ -219,17 +279,6 @@ app.get('/api/time-slots', (req, res) => {
     { id: 3, time: '02:00 PM' },
   ];
   res.json(timeSlots);
-});
-
-// Example for creating an appointment
-app.post('/api/bookevent', (req, res) => {
-  const { name, email, phone, problem, slot } = req.body;
-  return res.json(req.body);
-  // Save appointment to the database
-
-  // Send Google Calendar invite
-
-  res.status(201).json({ message: 'Appointment created successfully' });
 });
 
 app.listen(8000, () => {
