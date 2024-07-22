@@ -19,8 +19,8 @@ exports.retrieveOne = async (params) => await UserModel.findOne({ where: params 
     
     
 exports.getProfile = async (userId) => await UserModel.findOne({ 
-    where: {id:userId},
-    attributes:["id","first_name","email","image_url"]
+    where: {user_id:userId},
+    attributes:["user_id","first_name","email","image_url"]
  })
 .catch((error) => {
     console.log('error: ', error);
@@ -31,17 +31,10 @@ exports.getProfile = async (userId) => await UserModel.findOne({
 exports.retrieveAll = async (result) => {
     const queryResult = await UserModel.findAll({
         attributes: [
-            'id',
+            'user_id',
             'first_name',
             'email'
-        ],
-        include: [
-            {
-                model: OtpModel,
-                attributes: [],
-                required: false,
-            },
-        ],
+        ]
     }).catch((error) => {
         console.log(error);
         return result(responseHandler(false, 500, 'Something went wrong!', null), null);
@@ -49,30 +42,30 @@ exports.retrieveAll = async (result) => {
     if (utils.conditional.isArrayEmpty(queryResult)) {
         return result(responseHandler(false, 404, 'There are no users', null), null);
     }
-    return result(null, responseHandler(true, 200, 'Success', usersMap));
+    return result(null, responseHandler(true, 200, 'Success', queryResult));
 }
 
 
-exports.retrieveUserWithPlaylists = async (condition) => await UserModel.findOne({
-    where: condition,
-    attributes:['id'],
-    include: [
-        {
-            model:PlaylistModel,
-            attributes:['id','title','description','image_url','type','custom_playlist'],
-             through: {
-                attributes:[],
-            },
-            as:'playlists'
-        }
-    ]
-}).then((data) => {
-    if(!data){
-        throw new Error("user not found")
-    }
-    return data;
-})
-    .catch((error) => {
-        console.log('error: ', error);
-        throw new Error('User not found');
-    });
+// exports.retrieveUserWithPlaylists = async (condition) => await UserModel.findOne({
+//     where: condition,
+//     attributes:['user_id'],
+//     include: [
+//         {
+//             model:PlaylistModel,
+//             attributes:['user_id','title','description','image_url','type','custom_playlist'],
+//              through: {
+//                 attributes:[],
+//             },
+//             as:'playlists'
+//         }
+//     ]
+// }).then((data) => {
+//     if(!data){
+//         throw new Error("user not found")
+//     }
+//     return data;
+// })
+//     .catch((error) => {
+//         console.log('error: ', error);
+//         throw new Error('User not found');
+//     });

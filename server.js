@@ -10,7 +10,8 @@ const { authenticate } = require('@google-cloud/local-auth');
 const { google } = require('googleapis');
 const { v4: uuid } = require('uuid');
 const stripe = require('stripe')(`${process.env.STRIPE_SECRET_KEY}`);
-const bodyParser = require("body-parser")
+const bodyParser = require("body-parser");
+const { userRepository } = require("./repository/index.js");
 
 // Configure CORS to allow requests from http://localhost:3000
 const corsOptions = {
@@ -80,7 +81,7 @@ async function saveCredentials(client) {
     client_secret: key.client_secret,
     refresh_token: client.credentials.refresh_token,
   });
-  await fs.writeFileSync(TOKEN_PATH, payload);
+   fs.writeFileSync(TOKEN_PATH, payload);
 }
 
 async function authorize() {
@@ -170,9 +171,10 @@ async function listEvents(auth) {
 }
 
 
-app.post("/addEvent", async (req, res) => {
+app.post("/event", async (req, res) => {
   try {
     const auth = await authorize();
+    console.log(auth)
     const event = await addEvent(auth, req.body);
     console.log(event);
     res.send({
@@ -182,11 +184,10 @@ app.post("/addEvent", async (req, res) => {
   } catch (error) {
     console.error("Error creating event", error);
     res.status(500).send("Error creating event");
-  }sk_test_51PX2c7AsL5ZInC8Z0ki5aWg1nxCG7UqC07gpK55XqNxzL3rkw9HmB2a5kwJX0P1nM9OLIo79zqy4kGdQOaVwe8Rc00E6Vf2p3n
+  }
 });
 
-
-app.put("/updateEvent/:eventId", async (req, res) => {
+app.put("/event/:eventId", async (req, res) => {
   try {
     const auth = await authorize();
     const eventId = req.params.eventId;
@@ -202,7 +203,7 @@ app.put("/updateEvent/:eventId", async (req, res) => {
   }
 });
 
-app.delete("/deleteEvent/:eventId", async (req, res) => {
+app.delete("/event/:eventId", async (req, res) => {
   try {
     const auth = await authorize();
     await deleteEvent(auth, req.params.eventId);
@@ -213,7 +214,7 @@ app.delete("/deleteEvent/:eventId", async (req, res) => {
   }
 });
 
-app.get("/listEvents", async (req, res) => {
+app.get("/events", async (req, res) => {
   try {
     const auth = await authorize();
     const events = await listEvents(auth);
@@ -242,9 +243,6 @@ app.post("/create-payment-intent", async (req, res) => {
   });
 });
 
-
-
-
 app.post('/api/bookevent', async (req, res) => {
   const { name, email, phone, problem, date, slot } = req.body;
 
@@ -271,15 +269,15 @@ app.post('/api/bookevent', async (req, res) => {
 });
 
 
-// Example for fetching available time slots
-app.get('/api/time-slots', (req, res) => {
-  const timeSlots = [
-    { id: 1, time: '10:00 AM' },
-    { id: 2, time: '11:00 AM' },
-    { id: 3, time: '02:00 PM' },
-  ];
-  res.json(timeSlots);
-});
+app.get("/users",async (req,res) => {
+  await userRepository.retrieveAll((err,data) => {
+   if (err) {
+     return res.status(err.code).json(responseHandler(false, err.code, err.message, null));
+ }
+   return res.status(200).json( data)
+  });
+ 
+})
 
 app.listen(8000, () => {
   console.log("Server listening on port 8000");
