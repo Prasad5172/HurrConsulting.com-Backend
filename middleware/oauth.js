@@ -4,7 +4,7 @@ const { OAuth2Client } = require("google-auth-library");
 
 const oauth2Client = new OAuth2Client(
     process.env.CLIENT_ID,
-    process.env.CLIENT_SECRETE
+    process.env.CLIENT_SECRET
     )
 
  const verify= async (req, res, next)  => {
