@@ -59,6 +59,7 @@ const TOKEN_PATH = path.join(process.cwd(), 'token.json');
 const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
 
 async function loadSavedCredentialsIfExist() {
+  // console.log("loadSavedCredentialsIfExist")
   try {
     const content = fs.readFileSync(TOKEN_PATH);
     const credentials = JSON.parse(content);
@@ -70,17 +71,28 @@ async function loadSavedCredentialsIfExist() {
 }
 
 async function saveCredentials(client) {
-  const content = fs.readFileSync(CREDENTIALS_PATH);
-  const keys = JSON.parse(content);
-  const key = keys.installed || keys.web;
-  const payload = JSON.stringify({
-    type: 'authorized_user',
-    client_id: process.env.CLIENT_ID,
-    client_secret: process.env.CLIENT_SECRETE,
-    refresh_token: client.credentials.refresh_token,
-  });
-   fs.writeFileSync(TOKEN_PATH, payload);
+  try {
+    const content = fs.readFileSync(CREDENTIALS_PATH);
+    const keys = JSON.parse(content);
+    const key = keys.installed || keys.web;
+    const clientSecret = process.env.CLIENT_SECRET || key.client_secret;
+    if (!clientSecret) {
+      console.error('Client secret is missing.');
+      return;
+    }
+    const payload = JSON.stringify({
+      type: 'authorized_user',
+      client_id: key.client_id,
+      client_secret: clientSecret,
+      refresh_token: client.credentials.refresh_token,
+    });
+    fs.writeFileSync(TOKEN_PATH, payload);
+    console.log('Credentials saved successfully.');
+  } catch (error) {
+    console.error('Error saving credentials:', error);
+  }
 }
+
 
 async function authorize() {
   let client = await loadSavedCredentialsIfExist();
@@ -170,6 +182,35 @@ async function listEvents(auth) {
   const events = res.data.items;
   return events;
 }
+
+async function getEventById(auth, eventId) {
+  // Use the Google Calendar API to fetch an event by its ID
+  // This is an example function; adjust it based on your actual implementation
+  const calendar = google.calendar({version: 'v3', auth});
+  const response = await calendar.events.get({
+    calendarId: 'primary', // or the specific calendar ID you're working with
+    eventId: eventId,
+  });
+  return response.data;
+}
+
+// Route to get event by ID
+app.get("/events/:id", async (req, res) => {
+  const eventId = req.params.id;
+  console.log(`Fetching event with ID: ${eventId}`);
+  try {
+    const auth = await authorize();
+    const event = await getEventById(auth, eventId);
+    if (event) {
+      res.send(event);
+    } else {
+      res.status(404).send("Event not found");
+    }
+  } catch (error) {
+    console.error("Error fetching event", error);
+    res.status(500).send("Error fetching event");
+  }
+});
 
 
 app.post("/event",admin, async (req, res) => {

@@ -6,11 +6,6 @@ const { emailService } = require("../service");
 const jwt = require("jsonwebtoken")
 const googleAuth = require("./googleAuthController")
 
-const User = (user) => ({
-    first_name: user.first_name,
-    email: user.email,
-    password: user.password,
-});
 
 
 exports.register = asyncHandler(async (req, res) => {
@@ -158,8 +153,9 @@ exports.login = async (req, res, next) => {
                 }
                 return res.status(200).json({ ...data, name: user.first_name, email: user.email,is_admin:user.is_admin })
             })
+        }else{
+            return res.status(400).json(responseHandler(false, 400, "password mismatch", null));
         }
-        return res.status(400).json(responseHandler(false, 400, "failed", null));
     } catch (error) {
         console.log(error + "insignin");
         return res.status(400).json(responseHandler(false, 500, error.message, null));

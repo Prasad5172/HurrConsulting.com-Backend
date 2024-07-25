@@ -17,7 +17,7 @@ exports.sendOtp = async (req, res,next) => {
     console.log("sendemail");
     const user = await userRepository.retrieveOne({email:email});
     if(!user){
-        return res.status(400).json("signup");
+        return res.status(400).json(responseHandler(false,400,"signup",null));
     }
     try {
          await emailService.sendOtpToEmail(req.body,user.user_id,(err,data) => {
