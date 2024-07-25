@@ -8,7 +8,7 @@ exports.getJwtToken = (payload, logMessage,expireIn, result) => {
   JWT.sign(
     payload,
     process.env.JWT_SECRET,
-    { expiresIn: `${expireIn}s`},
+    { expiresIn: `${expireIn}m`},
     (error, token) => {
       if (error) {
         console.log('error: ', error);

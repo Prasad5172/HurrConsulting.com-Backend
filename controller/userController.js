@@ -54,14 +54,12 @@ exports.register = asyncHandler(async (req, res) => {
                 image_url:user.image_url,
                 is_admin :user.is_admin
             }
-
         }
-        return getJwtToken(payload, "succesful",600, (err, data) => {
+        // for 1 week
+        return getJwtToken(payload, "succesful",10080, (err, data) => {
             if (err) {
                 return res.status(err.code).json(err);
             }
-            console.log(user)
-            console.log(data);
             return res.status(200).json({ ...data, name: user.first_name, email: user.email,is_admin:user.is_admin })
         })
     }
@@ -123,7 +121,7 @@ exports.login = async (req, res, next) => {
             }
         }
         if(user.is_google_linked){
-            return getJwtToken(payload, "succesful",3600, (err, data) => {
+            return getJwtToken(payload, "succesful",10080, (err, data) => {
                 if (err) {
                     return res.status(err.code).json(responseHandler(false, err.code, err.message, null));
                 }
@@ -141,7 +139,7 @@ exports.login = async (req, res, next) => {
         }
         const payload = {
             user: {
-                id: user.user_id,
+                user_id: user.user_id,
                 is_admin: user.is_admin
             }
         }
@@ -154,7 +152,7 @@ exports.login = async (req, res, next) => {
         const isMatch = await bcryptjs.compare(password, user.password)
         console.log("isMatch", isMatch)
         if (isMatch) {
-            return getJwtToken(payload, "succesful",3600, (err, data) => {
+            return getJwtToken(payload, "succesful",10080, (err, data) => {
                 if (err) {
                     return res.status(err.code).json(err);
                 }
@@ -225,13 +223,16 @@ exports.verifyToken =async (req, res,next) => {
     console.log("userController/verifyToken")
     try {
         const token = req.headers.authorization.substring(7)
+        console.log(token)
         var id = null;
         jwt.verify(token, process.env.JWT_SECRET, (error, decoded) => {
             if (error) {
+                console.log(error)
                 return res
                     .status(400)
                     .json(responseHandler(false, 400, 'Try again', error));
             }
+            console.log(decoded);
             id = decoded.user.user_id;
         });
         var user = await userRepository.getProfile( id )

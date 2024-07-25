@@ -18,14 +18,19 @@ exports.retrieveOne = async (params) => await UserModel.findOne({ where: params 
     
     
     
-exports.getProfile = async (userId) => await UserModel.findOne({ 
-    where: {user_id:userId},
-    attributes:["user_id","first_name","email","image_url"]
- })
-.catch((error) => {
-    console.log('error: ', error);
-    throw new Error('User not found');
-});
+exports.getProfile = async (userId) => {
+    console.log("getProfile")
+    return await UserModel.findOne({ 
+        where: {user_id:userId},
+        attributes:["user_id","first_name","email","image_url",'is_admin']
+     })
+    .catch((error) => {
+        console.log("getProfile in UserRepository")
+        console.log('error: ', error);
+        throw new Error('User not found');
+    })
+
+};
 
 
 exports.retrieveAll = async (result) => {
@@ -33,7 +38,8 @@ exports.retrieveAll = async (result) => {
         attributes: [
             'user_id',
             'first_name',
-            'email'
+            'email',
+            'is_admin'
         ]
     }).catch((error) => {
         console.log(error);
@@ -45,27 +51,3 @@ exports.retrieveAll = async (result) => {
     return result(null, responseHandler(true, 200, 'Success', queryResult));
 }
 
-
-// exports.retrieveUserWithPlaylists = async (condition) => await UserModel.findOne({
-//     where: condition,
-//     attributes:['user_id'],
-//     include: [
-//         {
-//             model:PlaylistModel,
-//             attributes:['user_id','title','description','image_url','type','custom_playlist'],
-//              through: {
-//                 attributes:[],
-//             },
-//             as:'playlists'
-//         }
-//     ]
-// }).then((data) => {
-//     if(!data){
-//         throw new Error("user not found")
-//     }
-//     return data;
-// })
-//     .catch((error) => {
-//         console.log('error: ', error);
-//         throw new Error('User not found');
-//     });

@@ -12,7 +12,7 @@ const { v4: uuid } = require('uuid');
 const stripe = require('stripe')(`${process.env.STRIPE_SECRET_KEY}`);
 const bodyParser = require("body-parser");
 const { userRepository } = require("./repository/index.js");
-
+const {admin} = require("./middleware")
 // Configure CORS to allow requests from http://localhost:3000
 const corsOptions = {
   origin: 'http://localhost:3000',
@@ -172,7 +172,8 @@ async function listEvents(auth) {
 }
 
 
-app.post("/event", async (req, res) => {
+app.post("/event",admin, async (req, res) => {
+  console.log("admin post")
   try {
     const auth = await authorize();
     console.log(auth)
@@ -188,7 +189,8 @@ app.post("/event", async (req, res) => {
   }
 });
 
-app.put("/event/:eventId", async (req, res) => {
+app.put("/event/:eventId",admin, async (req, res) => {
+  console.log("admin put")
   try {
     const auth = await authorize();
     const eventId = req.params.eventId;
@@ -204,7 +206,8 @@ app.put("/event/:eventId", async (req, res) => {
   }
 });
 
-app.delete("/event/:eventId", async (req, res) => {
+app.delete("/event/:eventId",admin, async (req, res) => {
+  console.log("admin delete")
   try {
     const auth = await authorize();
     await deleteEvent(auth, req.params.eventId);
@@ -215,7 +218,8 @@ app.delete("/event/:eventId", async (req, res) => {
   }
 });
 
-app.get("/events", async (req, res) => {
+app.get("/events",admin, async (req, res) => {
+  console.log("admin get")
   try {
     const auth = await authorize();
     const events = await listEvents(auth);
