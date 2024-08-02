@@ -54,60 +54,21 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use("/", require("./routes/index.js"));
 
-const SCOPES = ['https://www.googleapis.com/auth/calendar'];
-const TOKEN_PATH = path.join(process.cwd(), 'token.json');
-const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
+const CREDENTIALS = JSON.parse(process.env.CREDENTIALS);
+const calendarId = process.env.CALENDAR_ID;
 
-async function loadSavedCredentialsIfExist() {
-  // console.log("loadSavedCredentialsIfExist")
-  try {
-    const content = fs.readFileSync(TOKEN_PATH);
-    const credentials = JSON.parse(content);
-    console.log(credentials)
-    return google.auth.fromJSON(credentials);
-  } catch (err) {
-    return null;
-  }
-}
+// Google Calendar API settings
+const SCOPES = ["https://www.googleapis.com/auth/calendar", "https://www.googleapis.com/auth/calendar.events"];
 
-async function saveCredentials(client) {
-  try {
-    const content = fs.readFileSync(CREDENTIALS_PATH);
-    const keys = JSON.parse(content);
-    const key = keys.installed || keys.web;
-    const clientSecret = process.env.CLIENT_SECRET || key.client_secret;
-    if (!clientSecret) {
-      console.error('Client secret is missing.');
-      return;
-    }
-    const payload = JSON.stringify({
-      type: 'authorized_user',
-      client_id: key.client_id,
-      client_secret: clientSecret,
-      refresh_token: client.credentials.refresh_token,
-    });
-    fs.writeFileSync(TOKEN_PATH, payload);
-    console.log('Credentials saved successfully.');
-  } catch (error) {
-    console.error('Error saving credentials:', error);
-  }
-}
+const auth = new google.auth.JWT(
+  CREDENTIALS.client_email,
+  null,
+  CREDENTIALS.private_key,
+  SCOPES,
+  process.env.ATTORNEY_MAIL
+);
 
-
-async function authorize() {
-  let client = await loadSavedCredentialsIfExist();
-  if (client) {
-    return client;
-  }
-  client = await authenticate({
-    scopes: SCOPES,
-    keyfilePath: CREDENTIALS_PATH,
-  });
-  if (client.credentials) {
-    await saveCredentials(client);
-  }
-  return client;
-}
+// const calendar = google.calendar({ version: "v3", auth });
 
 async function addEvent(auth, eventData) {
   const calendar = google.calendar({ version: 'v3', auth });
@@ -199,7 +160,6 @@ app.get("/events/:id", async (req, res) => {
   const eventId = req.params.id;
   console.log(`Fetching event with ID: ${eventId}`);
   try {
-    const auth = await authorize();
     const event = await getEventById(auth, eventId);
     if (event) {
       res.send(event);
@@ -213,11 +173,9 @@ app.get("/events/:id", async (req, res) => {
 });
 
 
-app.post("/event",admin, async (req, res) => {
+app.post("/event", async (req, res) => {
   console.log("admin post")
   try {
-    const auth = await authorize();
-    console.log(auth)
     const event = await addEvent(auth, req.body);
     console.log(event);
     res.send({
@@ -230,10 +188,9 @@ app.post("/event",admin, async (req, res) => {
   }
 });
 
-app.put("/event/:eventId",admin, async (req, res) => {
+app.put("/event/:eventId", async (req, res) => {
   console.log("admin put")
   try {
-    const auth = await authorize();
     const eventId = req.params.eventId;
     const event = await updateEvent(auth, eventId, req.body);
     console.log(event);
@@ -247,10 +204,9 @@ app.put("/event/:eventId",admin, async (req, res) => {
   }
 });
 
-app.delete("/event/:eventId",admin, async (req, res) => {
+app.delete("/event/:eventId", async (req, res) => {
   console.log("admin delete")
   try {
-    const auth = await authorize();
     await deleteEvent(auth, req.params.eventId);
     res.send({ msg: "Event deleted successfully" });
   } catch (error) {
@@ -259,10 +215,9 @@ app.delete("/event/:eventId",admin, async (req, res) => {
   }
 });
 
-app.get("/events",admin, async (req, res) => {
+app.get("/events", async (req, res) => {
   console.log("admin get")
   try {
-    const auth = await authorize();
     const events = await listEvents(auth);
     res.send(events);
   } catch (error) {

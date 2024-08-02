@@ -3,7 +3,4 @@ node_modules/
 
 # Ignore .env file
 .env
-credentials.json
-token.json
-oauthforlawfirm-87c20f3d1d9c.json
-testing/tokens.json
+hurr-consulting-431308-d2aaa97d93b5.json
