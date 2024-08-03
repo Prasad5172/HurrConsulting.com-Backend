@@ -156,7 +156,7 @@ async function getEventById(auth, eventId) {
 }
 
 // Route to get event by ID
-app.get("/events/:id", async (req, res) => {
+app.get("/events/:id",admin, async (req, res) => {
   const eventId = req.params.id;
   console.log(`Fetching event with ID: ${eventId}`);
   try {
@@ -173,7 +173,7 @@ app.get("/events/:id", async (req, res) => {
 });
 
 
-app.post("/event", async (req, res) => {
+app.post("/event",admin, async (req, res) => {
   console.log("admin post")
   try {
     const event = await addEvent(auth, req.body);
@@ -188,7 +188,7 @@ app.post("/event", async (req, res) => {
   }
 });
 
-app.put("/event/:eventId", async (req, res) => {
+app.put("/event/:eventId",admin, async (req, res) => {
   console.log("admin put")
   try {
     const eventId = req.params.eventId;
@@ -204,7 +204,7 @@ app.put("/event/:eventId", async (req, res) => {
   }
 });
 
-app.delete("/event/:eventId", async (req, res) => {
+app.delete("/event/:eventId",admin, async (req, res) => {
   console.log("admin delete")
   try {
     await deleteEvent(auth, req.params.eventId);
@@ -215,7 +215,7 @@ app.delete("/event/:eventId", async (req, res) => {
   }
 });
 
-app.get("/events", async (req, res) => {
+app.get("/events",admin, async (req, res) => {
   console.log("admin get")
   try {
     const events = await listEvents(auth);
