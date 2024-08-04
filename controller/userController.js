@@ -5,7 +5,9 @@ const { userRepository } = require("../repository")
 const { emailService } = require("../service");
 const jwt = require("jsonwebtoken")
 const googleAuth = require("./googleAuthController")
-
+const jose = require('jose')
+const { jwtDecode } = require("jwt-decode");
+const axios = require('axios');
 
 
 exports.register = asyncHandler(async (req, res) => {
@@ -16,20 +18,19 @@ exports.register = asyncHandler(async (req, res) => {
     if (authHeader) {
         token = authHeader.split(" ")[1];
     }
+    // return res.send(token);
     if (token != null) {
-        var googleUserData = null;
-        await googleAuth.googleAuthApi(token, (err, data) => {
-            if (err) {
-                return res.status(err.code).json(err);
+        const googleUserData = await axios.get("https://www.googleapis.com/oauth2/v3/userinfo", {
+            headers: {
+              "Authorization": `Bearer ${token}`
             }
-            console.log("data", data)
-            googleUserData = data.data
-        });
-        // return googleUserData;
-        console.log(googleUserData)
-        const { email, name, picture, email_verified } = googleUserData;
+          });
+        
+        console.log(googleUserData.data);
+        // return res.send(googleUserData.data);
+        const { email, name, picture, email_verified } = googleUserData.data;
         if (!email_verified) {
-            return res.status(400).json("email is not verified by google");
+            return res.status(400).json(responseHandler(false, 400, "email is not verified by google", null))
         }
         let user = await userRepository.retrieveOne({ email: email })
         console.log(user)
@@ -51,7 +52,7 @@ exports.register = asyncHandler(async (req, res) => {
             }
         }
         // for 1 week
-        return getJwtToken(payload, "succesful",10080, (err, data) => {
+        return getJwtToken(payload, "registred succesful",10080, (err, data) => {
             if (err) {
                 return res.status(err.code).json(err);
             }
@@ -97,15 +98,10 @@ exports.login = async (req, res, next) => {
     if (authHeader) {
         token = authHeader.split(" ")[1];
     }
+    console.log(token);
     if (token != null) {
-        var googleUserData = null;
-        await googleAuth.googleAuthApi(token, (err, data) => {
-            if (err) {
-                return res.status(err.code).json(err);
-            }
-            console.log("data", data)
-            googleUserData = data.data
-        });
+        var googleUserData = jose.decodeJwt(token);
+        // return res.send(googleUserData);
         console.log(googleUserData)
         const { email, name, picture, email_verified } = googleUserData;
         let user = await userRepository.retrieveOne({ email: email })
@@ -116,13 +112,15 @@ exports.login = async (req, res, next) => {
             }
         }
         if(user.is_google_linked){
-            return getJwtToken(payload, "succesful",10080, (err, data) => {
+            console.log("user.is_google_linked true")
+            return getJwtToken(payload, "registred succesful",10080, (err, data) => {
                 if (err) {
                     return res.status(err.code).json(responseHandler(false, err.code, err.message, null));
                 }
                 return res.status(200).json({ ...data, name: user.first_name, email: user.email,is_admin:user.is_admin })
             });
         }
+        console.log("user.is_google_linked false")
         return res.status(400).json(responseHandler(false,400,"not registred with google",null))
     }
     try {
@@ -147,7 +145,7 @@ exports.login = async (req, res, next) => {
         const isMatch = await bcryptjs.compare(password, user.password)
         console.log("isMatch", isMatch)
         if (isMatch) {
-            return getJwtToken(payload, "succesful",10080, (err, data) => {
+            return getJwtToken(payload, "registred succesful",10080, (err, data) => {
                 if (err) {
                     return res.status(err.code).json(err);
                 }
@@ -193,7 +191,7 @@ exports.resetPassword = asyncHandler(async (req, res,next) => {
         let user = await userRepository.retrieveOne({ email: email });
         user.password = passwordHash;
         await user.save()
-        return res.status(200).json("succesful");
+        return res.status(200).json("reset succesful");
     } catch (error) {
         console.log(error);
         res.status(400).json("failedtoupdate");
@@ -233,7 +231,7 @@ exports.verifyToken =async (req, res,next) => {
         });
         var user = await userRepository.getProfile( id )
         if(user){
-            return res.status(200).json(responseHandler(true,200,"succesful",user));
+            return res.status(200).json(responseHandler(true,200,"verified succesfully",user));
         }
         return res.status(400).json(responseHandler(false,400,"token is not valid",null))
     } catch (error) {

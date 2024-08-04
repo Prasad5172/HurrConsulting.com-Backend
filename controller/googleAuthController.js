@@ -7,10 +7,16 @@ exports.googleAuthApi =async (access_token,result) => {
                 "Authorization": `Bearer ${access_token}`
               }
             });
-        const data = await res.json()
-        return result(null,responseHandler(true,200,"data",data))
+        if(res.ok){
+            const data = await res.json()
+            return result(null,data)
+        }else{
+            return result(data,null);
+        }
     } catch (error) {
         console.log(error)
-        return result(responseHandler(false,error.statusCode,error.message,null),null)
+        return result(error,null)
     }
 }
+
+
