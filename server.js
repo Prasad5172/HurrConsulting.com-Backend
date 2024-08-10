@@ -11,56 +11,8 @@ const bodyParser = require("body-parser");
 const { userRepository } = require("./repository/index.js");
 const { admin } = require("./middleware");
 
-const corsOptions = {
-  origin: "http://localhost:3000",
-};
-app.post(
-  "/webhook",
-  bodyParser.raw({ type: "application/json" }),
-  async (req, res) => {
-    console.log("webhook");
-    const sig = req.headers["stripe-signature"];
-    let event;
-
-    try {
-      event = stripe.webhooks.constructEvent(
-        req.body,
-        sig,
-        process.env.STRIPE_WEBHOOK_SECRET
-      );
-    } catch (err) {
-      console.log(err.message);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
-
-    if (event.type === "payment_intent.succeeded") {
-      const paymentIntent = event.data.object;
-      const appointmentData = paymentIntent.metadata;
-
-      const auth = await authorize();
-      const eventData = {
-        summary: appointmentData.summary,
-        description: appointmentData.description,
-        start: { dateTime: appointmentData.start, timeZone: "Asia/Kolkata" },
-        end: { dateTime: appointmentData.end, timeZone: "Asia/Kolkata" },
-        attendees: [{ email: appointmentData.attendeeEmail }],
-      };
-
-      const calendarEvent = await addEvent(auth, eventData);
-      console.log("Calendar Event Created:", calendarEvent);
-    }
-    res.status(200).json({ received: true });
-  }
-);
-
-app.use(cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use("/", require("./routes/index.js"));
-
 const CREDENTIALS = JSON.parse(process.env.CREDENTIALS);
 const calendarId = process.env.CALENDAR_ID;
-
 // Google Calendar API settings
 const SCOPES = [
   "https://www.googleapis.com/auth/calendar",
@@ -74,6 +26,58 @@ const auth = new google.auth.JWT(
   SCOPES,
   process.env.ATTORNEY_MAIL
 );
+
+app.post(
+  "/webhook",
+  bodyParser.raw({ type: "application/json" }),
+  async (req, res) => {
+    console.log("webhook");
+    const sig = req.headers["stripe-signature"];
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+    } catch (err) {
+      console.error("Webhook Error:", err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+    if (event.type === "payment_intent.succeeded") {
+      const paymentIntent = event.data.object;
+      const appointmentData = paymentIntent.metadata;
+      console.log(appointmentData);
+      try {
+        const eventData = {
+          summary: appointmentData.summary,
+          description: appointmentData.description,
+          start: { dateTime: appointmentData.start, timeZone: "Asia/Kolkata" },
+          end: { dateTime: appointmentData.end, timeZone: "Asia/Kolkata" },
+          attendees: [{ email: appointmentData.attendeeEmail }],
+        };
+        const calendarEvent = await addEvent(auth, eventData);
+        console.log("Calendar Event Created:", calendarEvent);
+      } catch (err) {
+        console.error("Error creating calendar event:", err.message);
+        return res.status(500).send(`Error creating calendar event: ${err.message}`);
+      }
+    }
+
+    res.status(200).json({ received: true });
+  }
+);
+
+const corsOptions = {
+  origin: "http://localhost:3000",
+};
+
+app.use(cors(corsOptions));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use("/", require("./routes/index.js"));
+
+
 
 // const calendar = google.calendar({ version: "v3", auth });
 
@@ -278,6 +282,30 @@ app.get("/users", async (req, res) => {
     }
     return res.status(200).json(data);
   });
+});
+
+app.post('/create-checkout-session', async (req, res) => {
+  const {event} = req.body;
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'T-shirt',
+          },
+          unit_amount: 1000, // $20.00
+        },
+        quantity: 1,
+      },
+    ],
+    mode: 'payment',
+    success_url: 'http://localhost:3000/service',
+    cancel_url: 'http://localhost:3000/contact',
+  });
+
+  res.json({ id: session.id });
 });
 
 app.listen(8000, () => {
