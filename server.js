@@ -27,74 +27,74 @@ const auth = new google.auth.JWT(
   process.env.ATTORNEY_MAIL
 );
 
-app.post(
-  "/webhook",
-  bodyParser.raw({ type: "application/json" }),
-  async (req, res) => {
-    console.log("webhook");
-    const sig = req.headers["stripe-signature"];
-    let event;
-    try {
-      event = stripe.webhooks.constructEvent(
-        req.body,
-        sig,
-        process.env.STRIPE_WEBHOOK_SECRET
-      );
-    } catch (err) {
-      console.error("Webhook Error:", err.message);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
-    if (event.type === "payment_intent.succeeded") {
-      const paymentIntent = event.data.object;
-      const appointmentData = paymentIntent.metadata;
-      console.log(appointmentData);
-      try {
-        const eventData = {
-          summary: appointmentData.summary,
-          description: appointmentData.description,
-          start: { dateTime: appointmentData.start, timeZone: "Asia/Kolkata" },
-          end: { dateTime: appointmentData.end, timeZone: "Asia/Kolkata" },
-          attendees: [{ email: appointmentData.attendeeEmail }],
-        };
-        const calendarEvent = await addEvent(auth, eventData);
-        console.log("Calendar Event Created:", calendarEvent);
-      } catch (err) {
-        console.error("Error creating calendar event:", err.message);
-        return res.status(500).send(`Error creating calendar event: ${err.message}`);
-      }
-    }
+app.post('/webhook', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
+  console.log("webhook")
+  const sig = req.headers['stripe-signature'];
+  let event;
 
-    res.status(200).json({ received: true });
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (err) {
+    console.error('Webhook Error:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  } 
+  console.log("event",event.data.object);
+  if (event.type === 'checkout.session.completed') {
+    console.log("payment was succesful");
+    const paymentIntent = event.data.object; // This is the PaymentIntent object
+    const appointmentData = paymentIntent.metadata; // Metadata should be here
+
+    try {
+      const eventData = {
+        summary: appointmentData.summary,
+        description: appointmentData.description,
+        start:   appointmentData.start,
+        end: appointmentData.end,
+        attendees: [{ email: appointmentData.attendeeEmail }],
+      };
+
+      const calendarEvent = await addEvent(auth, eventData);
+      console.log('Calendar Event Created:', calendarEvent);
+    } catch (err) {
+      console.error('Error creating calendar event:', err);
+      return res.status(500).send(`Error creating calendar event: ${err.message}`);
+    }
   }
-);
+
+  res.status(200).json({ received: true });
+});
+
+
+
 
 const corsOptions = {
   origin: "http://localhost:3000",
 };
-
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use("/", require("./routes/index.js"));
 
 
-
-// const calendar = google.calendar({ version: "v3", auth });
-
 async function addEvent(auth, eventData) {
   const calendar = google.calendar({ version: "v3", auth });
   const response = await calendar.events.insert({
     calendarId: "primary",
     conferenceDataVersion: 1,
+    sendUpdates : "all",
     requestBody: {
       summary: eventData.summary,
       description: eventData.description,
       start: {
-        dateTime: dayjs(eventData.start).toISOString(),
+        dateTime: eventData.start,
         timeZone: "Asia/Kolkata",
       },
       end: {
-        dateTime: dayjs(eventData.end).toISOString(),
+        dateTime: eventData.end,
         timeZone: "Asia/Kolkata",
       },
       conferenceData: {
@@ -114,6 +114,7 @@ async function updateEvent(auth, eventId, eventData) {
   const response = await calendar.events.update({
     calendarId: "primary",
     eventId: eventId,
+    sendUpdates : "all",
     requestBody: {
       summary: eventData.summary,
       description: eventData.description,
@@ -137,6 +138,7 @@ async function deleteEvent(auth, eventId) {
   await calendar.events.delete({
     calendarId: "primary",
     eventId: eventId,
+    sendUpdates:"all"
   });
 }
 
@@ -164,7 +166,7 @@ async function getEventById(auth, eventId) {
   return response.data;
 }
 
-app.get("/events/:id", admin, async (req, res) => {
+app.get("/events/:id", async (req, res) => {
   const eventId = req.params.id;
   console.log(`Fetching event with ID: ${eventId}`);
   try {
@@ -180,7 +182,7 @@ app.get("/events/:id", admin, async (req, res) => {
   }
 });
 
-app.post("/event", admin, async (req, res) => {
+app.post("/event",async (req, res) => {
   console.log("admin post");
   try {
     const event = await addEvent(auth, req.body);
@@ -195,7 +197,7 @@ app.post("/event", admin, async (req, res) => {
   }
 });
 
-app.put("/event/:eventId", admin, async (req, res) => {
+app.put("/event/:eventId",  async (req, res) => {
   console.log("admin put");
   try {
     const eventId = req.params.eventId;
@@ -211,7 +213,7 @@ app.put("/event/:eventId", admin, async (req, res) => {
   }
 });
 
-app.delete("/event/:eventId", admin, async (req, res) => {
+app.delete("/event/:eventId",async (req, res) => {
   console.log("admin delete");
   try {
     await deleteEvent(auth, req.params.eventId);
@@ -222,7 +224,7 @@ app.delete("/event/:eventId", admin, async (req, res) => {
   }
 });
 
-app.get("/events", admin, async (req, res) => {
+app.get("/events", async (req, res) => {
   console.log("admin get");
   try {
     const events = await listEvents(auth);
@@ -285,7 +287,8 @@ app.get("/users", async (req, res) => {
 });
 
 app.post('/create-checkout-session', async (req, res) => {
-  const {event} = req.body;
+  const { event} = req.body;
+  console.log(event);
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     line_items: [
@@ -293,9 +296,9 @@ app.post('/create-checkout-session', async (req, res) => {
         price_data: {
           currency: 'usd',
           product_data: {
-            name: 'T-shirt',
+            name: 'Appointment Booking',
           },
-          unit_amount: 1000, // $20.00
+          unit_amount: 100, 
         },
         quantity: 1,
       },
@@ -303,8 +306,16 @@ app.post('/create-checkout-session', async (req, res) => {
     mode: 'payment',
     success_url: 'http://localhost:3000/service',
     cancel_url: 'http://localhost:3000/contact',
+    metadata: {
+      summary: event.summary || '',
+      description: event.description || '',
+      start: event.start || '',
+      end: event.end || '',
+      attendeeEmail: event.email || '',
+    },
   });
-
+ 
+  console.log(session);
   res.json({ id: session.id });
 });
 
