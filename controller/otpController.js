@@ -20,6 +20,7 @@ exports.verifyOtp = async (req,res,next) => {
             }
         ]
     });
+    console.log(user);
     if (!user || !user.otp) {
         return res.status(400).json("Invalid email or OTP");
     }
@@ -41,7 +42,7 @@ exports.verifyOtp = async (req,res,next) => {
         user.save()
         const payload = {
             user: {
-                id: user.user_id,
+                user_id: user.user_id,
                 email: user.email,
                 is_admin:user.is_admin
             }

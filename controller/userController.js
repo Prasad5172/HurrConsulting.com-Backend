@@ -61,6 +61,7 @@ exports.register = asyncHandler(async (req, res) => {
         is_admin: user.is_admin,
       },
     };
+    console.log(payload);
     // for 1 week
     return getJwtToken(payload, "registred succesful", 10080, (err, data) => {
       if (err) {
@@ -94,7 +95,7 @@ exports.register = asyncHandler(async (req, res) => {
       checkUser.save();
       // console.log("after",checkUser)
     }
-    // console.log("checkUser",checkUser)
+    console.log("checkUser",checkUser)
     await emailService.sendOtpToEmail(
       req.body,
       checkUser.user_id,

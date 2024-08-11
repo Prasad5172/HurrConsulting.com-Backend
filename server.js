@@ -3,7 +3,6 @@ const cors = require("cors");
 const app = express();
 const dotenv = require("dotenv");
 dotenv.config();
-const dayjs = require("dayjs");
 const { google } = require("googleapis");
 const { v4: uuid } = require("uuid");
 const stripe = require("stripe")(`${process.env.STRIPE_SECRET_KEY}`);
@@ -12,7 +11,6 @@ const { userRepository } = require("./repository/index.js");
 const { admin } = require("./middleware");
 
 const CREDENTIALS = JSON.parse(process.env.CREDENTIALS);
-const calendarId = process.env.CALENDAR_ID;
 // Google Calendar API settings
 const SCOPES = [
   "https://www.googleapis.com/auth/calendar",
@@ -45,8 +43,8 @@ app.post('/webhook', bodyParser.raw({ type: 'application/json' }), async (req, r
   console.log("event",event.data.object);
   if (event.type === 'checkout.session.completed') {
     console.log("payment was succesful");
-    const paymentIntent = event.data.object; // This is the PaymentIntent object
-    const appointmentData = paymentIntent.metadata; // Metadata should be here
+    const paymentIntent = event.data.object; 
+    const appointmentData = paymentIntent.metadata; 
 
     try {
       const eventData = {
@@ -54,7 +52,7 @@ app.post('/webhook', bodyParser.raw({ type: 'application/json' }), async (req, r
         description: appointmentData.description,
         start:   appointmentData.start,
         end: appointmentData.end,
-        attendees: [{ email: appointmentData.attendeeEmail }],
+        attendees: [{ email: appointmentData.attendeeEmail }]
       };
 
       const calendarEvent = await addEvent(auth, eventData);
@@ -197,7 +195,7 @@ app.post("/event",async (req, res) => {
   }
 });
 
-app.put("/event/:eventId",  async (req, res) => {
+app.put("/event/:eventId",admin,  async (req, res) => {
   console.log("admin put");
   try {
     const eventId = req.params.eventId;
@@ -213,7 +211,7 @@ app.put("/event/:eventId",  async (req, res) => {
   }
 });
 
-app.delete("/event/:eventId",async (req, res) => {
+app.delete("/event/:eventId",admin ,async (req, res) => {
   console.log("admin delete");
   try {
     await deleteEvent(auth, req.params.eventId);
@@ -224,7 +222,7 @@ app.delete("/event/:eventId",async (req, res) => {
   }
 });
 
-app.get("/events", async (req, res) => {
+app.get("/events",admin, async (req, res) => {
   console.log("admin get");
   try {
     const events = await listEvents(auth);
@@ -235,47 +233,11 @@ app.get("/events", async (req, res) => {
   }
 });
 
-app.post("/create-payment-intent", async (req, res) => {
-  console.log("create-payment-intent");
-  const { items } = req.body;
 
-  // Create a PaymentIntent with the order amount and currency
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: 1000,
-    currency: "usd",
-  });
-  console.log(paymentIntent.client_secret);
-  res.send({
-    clientSecret: paymentIntent.client_secret,
-  });
-});
 
-app.post("/api/bookevent", async (req, res) => {
-  const { name, email, phone, problem, date, slot } = req.body;
 
-  // Create payment intent with appointment details as metadata
-  try {
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: 1000, // Amount in cents
-      currency: "usd",
-      metadata: {
-        summary: `Appointment with ${name}`,
-        description: problem,
-        start: new Date(date + "T" + slot).toISOString(),
-        end: new Date(date + "T" + slot).toISOString(), // Example duration
-        attendeeEmail: email,
-      },
-    });
 
-    res.send({
-      clientSecret: paymentIntent.client_secret,
-    });
-  } catch (error) {
-    res.status(500).send({ error: error.message });
-  }
-});
-
-app.get("/users", async (req, res) => {
+app.get("/users",admin, async (req, res) => {
   await userRepository.retrieveAll((err, data) => {
     if (err) {
       return res
