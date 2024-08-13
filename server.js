@@ -3,6 +3,7 @@ const cors = require("cors");
 const app = express();
 const dotenv = require("dotenv");
 dotenv.config();
+var nodemailer = require("nodemailer");
 const { google } = require("googleapis");
 const { v4: uuid } = require("uuid");
 const stripe = require("stripe")(`${process.env.STRIPE_SECRET_KEY}`);
@@ -25,49 +26,56 @@ const auth = new google.auth.JWT(
   process.env.ATTORNEY_MAIL
 );
 
-app.post('/webhook', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
-  console.log("webhook")
+const sendReceiptEmail = async (email, sessionId) => {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Payment Confirmation from Hurr Consulting',
+    html: `<p>Thank you for your payment. Your session ID is ${sessionId}.<br>Best regards,<br>Hurr Consulting</p>`,
+  };
+
+  await transporter.sendMail(mailOptions);
+
+  // Optionally, send the receipt to the admin as well
+  const adminMailOptions = {
+    from: process.env.EMAIL_USER,
+    to: process.env.ADMIN_EMAIL,
+    subject: 'Payment Received',
+    html: `<p>Payment received from ${email}. Session ID: ${sessionId}</p>`,
+  };
+
+  await transporter.sendMail(adminMailOptions);
+};
+
+
+app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
-    console.error('Webhook Error:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
-  } 
-  console.log("event",event.data.object);
-  if (event.type === 'checkout.session.completed') {
-    console.log("payment was succesful");
-    const paymentIntent = event.data.object; 
-    const appointmentData = paymentIntent.metadata; 
-
-    try {
-      const eventData = {
-        summary: appointmentData.summary,
-        description: appointmentData.description,
-        start:   appointmentData.start,
-        end: appointmentData.end,
-        attendees: [{ email: appointmentData.attendeeEmail }]
-      };
-
-      const calendarEvent = await addEvent(auth, eventData);
-      console.log('Calendar Event Created:', calendarEvent);
-    } catch (err) {
-      console.error('Error creating calendar event:', err);
-      return res.status(500).send(`Error creating calendar event: ${err.message}`);
-    }
   }
 
-  res.status(200).json({ received: true });
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    const email = session.metadata.email;
+    
+    // Send receipt email
+    await sendReceiptEmail(email, session.id);
+  }
+
+  res.json({ received: true });
 });
-
-
-
 
 const corsOptions = {
   origin: "http://localhost:3000",
@@ -77,13 +85,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use("/", require("./routes/index.js"));
 
-
 async function addEvent(auth, eventData) {
   const calendar = google.calendar({ version: "v3", auth });
   const response = await calendar.events.insert({
     calendarId: "primary",
     conferenceDataVersion: 1,
-    sendUpdates : "all",
+    sendUpdates: "all",
     requestBody: {
       summary: eventData.summary,
       description: eventData.description,
@@ -100,7 +107,7 @@ async function addEvent(auth, eventData) {
           requestId: uuid(),
         },
       },
-      attendees: eventData.attendees,
+      attendees: [{ email: eventData.email }],
     },
   });
   return response.data; // Return the event details including the event ID
@@ -112,7 +119,7 @@ async function updateEvent(auth, eventId, eventData) {
   const response = await calendar.events.update({
     calendarId: "primary",
     eventId: eventId,
-    sendUpdates : "all",
+    sendUpdates: "all",
     requestBody: {
       summary: eventData.summary,
       description: eventData.description,
@@ -136,7 +143,7 @@ async function deleteEvent(auth, eventId) {
   await calendar.events.delete({
     calendarId: "primary",
     eventId: eventId,
-    sendUpdates:"all"
+    sendUpdates: "all",
   });
 }
 
@@ -180,14 +187,16 @@ app.get("/events/:id", async (req, res) => {
   }
 });
 
-app.post("/event",async (req, res) => {
+app.post("/event", async (req, res) => {
   console.log("admin post");
+  const { event } = req.body;
+  console.log(event);
   try {
-    const event = await addEvent(auth, req.body);
-    console.log(event);
-    res.send({
+    const createdEvent = await addEvent(auth, event);
+    console.log(createdEvent);
+    res.status(200).send({
       msg: "Event created successfully",
-      eventId: event.id, // Send back the event ID
+      eventId: createdEvent.id, // Send back the event ID
     });
   } catch (error) {
     console.error("Error creating event", error);
@@ -195,7 +204,7 @@ app.post("/event",async (req, res) => {
   }
 });
 
-app.put("/event/:eventId",admin,  async (req, res) => {
+app.put("/event/:eventId", admin, async (req, res) => {
   console.log("admin put");
   try {
     const eventId = req.params.eventId;
@@ -203,7 +212,7 @@ app.put("/event/:eventId",admin,  async (req, res) => {
     console.log(event);
     res.send({
       msg: "Event updated successfully",
-      eventId: event.id, 
+      eventId: event.id,
     });
   } catch (error) {
     console.error("Error updating event", error);
@@ -211,7 +220,7 @@ app.put("/event/:eventId",admin,  async (req, res) => {
   }
 });
 
-app.delete("/event/:eventId",admin ,async (req, res) => {
+app.delete("/event/:eventId", admin, async (req, res) => {
   console.log("admin delete");
   try {
     await deleteEvent(auth, req.params.eventId);
@@ -222,7 +231,7 @@ app.delete("/event/:eventId",admin ,async (req, res) => {
   }
 });
 
-app.get("/events",admin, async (req, res) => {
+app.get("/events", admin, async (req, res) => {
   console.log("admin get");
   try {
     const events = await listEvents(auth);
@@ -233,11 +242,7 @@ app.get("/events",admin, async (req, res) => {
   }
 });
 
-
-
-
-
-app.get("/users",admin, async (req, res) => {
+app.get("/users", admin, async (req, res) => {
   await userRepository.retrieveAll((err, data) => {
     if (err) {
       return res
@@ -247,39 +252,90 @@ app.get("/users",admin, async (req, res) => {
     return res.status(200).json(data);
   });
 });
+const emailTemplate = (sessionId) => `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container { width: 100%; background-color: #f4f4f4; }
+        .content { max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border: 1px solid #e0e0e0; }
+        .header { text-align: center; padding: 10px; background-color: #007bff; color: white; }
+        .footer { text-align: center; padding: 10px; background-color: #f1f1f1; color: #666; }
+        .button { display: inline-block; padding: 10px 20px; margin: 20px 0; font-size: 16px; color: white; background-color: #007bff; text-decoration: none; border-radius: 5px; }
+        .icons:hover { cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <div class="header">
+                <h1>Welcome to Hurr Consulting</h1>
+            </div>
+            <h1>Payment Request</h1>
+            <p>Please click the button below to complete your payment.</p>
+            <a href="http://localhost:3000/redirect-to-checkout/${sessionId}" class="button">Pay Now</a>
+            <p>Thanks,<br> Team</p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2024 lawfirm. All rights reserved.</p>
+            <p style="color: #666;">Follow Us</p>
+        </div>
+    </div>
+</body>
+</html>
+`;
 
-app.post('/create-checkout-session', async (req, res) => {
-  const { event} = req.body;
-  console.log(event);
+
+app.post("/create-checkout-session",admin, async (req, res) => {
+  const { email, amount } = req.body;
   const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
+    payment_method_types: ["card"],
     line_items: [
       {
         price_data: {
-          currency: 'usd',
+          currency: "usd",
           product_data: {
-            name: 'Appointment Booking',
+            name: "Appointment Booking",
           },
-          unit_amount: 100, 
+          unit_amount: amount,
         },
         quantity: 1,
       },
     ],
-    mode: 'payment',
-    success_url: 'http://localhost:3000/service',
-    cancel_url: 'http://localhost:3000/contact',
+    mode: "payment",
+    success_url: "http://localhost:3000",
+    cancel_url: "http://localhost:3000/cancel",
     metadata: {
-      summary: event.summary || '',
-      description: event.description || '',
-      start: event.start || '',
-      end: event.end || '',
-      attendeeEmail: event.email || '',
+      email: email || "",
     },
   });
- 
-  console.log(session);
+  // Set up Nodemailer transporter
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.REACT_APP_USER,
+      pass: process.env.REACT_APP_PASSWORD,
+    },
+  });
+
+  // Email options
+  const mailOptions = {
+    from: process.env.REACT_APP_USER,
+    to: email,
+    subject: "Payment Request from Hurr Consulting",
+    html: emailTemplate(session.id),
+  };
+
+  transporter.sendMail(mailOptions, function (error, info) {
+    if (error) {
+      console.log("error", error);
+      return;
+    }
+    console.log("info", info);
+  });
   res.json({ id: session.id });
 });
+
 
 app.listen(8000, () => {
   console.log("Server listening on port 8000");

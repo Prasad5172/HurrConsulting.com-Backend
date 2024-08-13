@@ -10,8 +10,6 @@ const {userRepository} = require("../repository")
 const { responseHandler } = require("../helpers");
 
 
-
-
 exports.sendOtp = async (req, res,next) => {
     const {email} = req.body;
     console.log("sendemail");

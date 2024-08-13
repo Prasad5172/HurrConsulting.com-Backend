@@ -84,10 +84,8 @@ const emailTemplate = (otp) => {
   );
 } 
 
-const CREDENTIALS = JSON.parse(process.env.CREDENTIALS);
 
 exports.mailTransporter = async (isFormData,data,otp,result) => {
-    console.log(CREDENTIALS);
     console.log("mailTransporter")
     var transporter = nodemailer.createTransport({
         service: "gmail",
