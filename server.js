@@ -75,20 +75,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use("/", require("./routes/index.js"));
 
-
-
-
-
-app.get("/users", admin, async (req, res) => {
-  await userRepository.retrieveAll((err, data) => {
-    if (err) {
-      return res
-        .status(err.code)
-        .json(responseHandler(false, err.code, err.message, null));
-    }
-    return res.status(200).json(data);
-  });
-});
 const emailTemplate = (sessionId) => `
 <!DOCTYPE html>
 <html>
