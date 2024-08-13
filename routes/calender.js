@@ -1,12 +1,15 @@
-const {google} = require('googleapis');
-const calendar = google.calendar('v3');
+const express = require("express")
+const router = express.Router()
 
-// Example for fetching available time slots
-app.get('/api/time-slots', (req, res) => {
-    const timeSlots = [
-      { id: 1, time: '10:00 AM' },
-      { id: 2, time: '11:00 AM' },
-      { id: 3, time: '02:00 PM' },
-    ];
-    res.json(timeSlots);
-  });
+
+const {calenderController} = require("../controller")
+const {admin} = require("../middleware")
+
+router.route("/:eventId").get(admin,calenderController.getEvent)
+router.route("/").post(admin,calenderController.createEvent)
+router.route("/:eventId").put(admin,calenderController.updateEvent)
+router.route("/:eventId").delete(admin,calenderController.deleteEvent)
+router.route("/").get(admin,calenderController.getEvents)
+
+
+module.exports= router

@@ -1,4 +1,3 @@
-const Sequelize = require('sequelize');
 const { responseHandler } = require('../helpers');
 const utils = require('../utils');
 const { UserModel, PlaylistModel } = require("../model")

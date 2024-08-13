@@ -7,31 +7,19 @@ var nodemailer = require("nodemailer");
 const { google } = require("googleapis");
 const { v4: uuid } = require("uuid");
 const stripe = require("stripe")(`${process.env.STRIPE_SECRET_KEY}`);
-const bodyParser = require("body-parser");
-const { userRepository } = require("./repository/index.js");
+const { userRepository, paymentRepository } = require("./repository/index.js");
 const { admin } = require("./middleware");
+const { paymentService } =require("./service/index.js");
 
-const CREDENTIALS = JSON.parse(process.env.CREDENTIALS);
-// Google Calendar API settings
-const SCOPES = [
-  "https://www.googleapis.com/auth/calendar",
-  "https://www.googleapis.com/auth/calendar.events",
-];
 
-const auth = new google.auth.JWT(
-  CREDENTIALS.client_email,
-  null,
-  CREDENTIALS.private_key,
-  SCOPES,
-  process.env.ATTORNEY_MAIL
-);
+
 
 const sendReceiptEmail = async (email, sessionId) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+      user: process.env.REACT_APP_USER,
+      pass: process.env.REACT_APP_PASSWORD,
     },
   });
 
@@ -57,6 +45,7 @@ const sendReceiptEmail = async (email, sessionId) => {
 
 
 app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  console.log("webhook")
   const sig = req.headers['stripe-signature'];
   let event;
 
@@ -68,12 +57,13 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
+    console.log(session);
     const email = session.metadata.email;
     
     // Send receipt email
     await sendReceiptEmail(email, session.id);
   }
-
+  console.log("endOfWebhook");
   res.json({ received: true });
 });
 
@@ -85,162 +75,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use("/", require("./routes/index.js"));
 
-async function addEvent(auth, eventData) {
-  const calendar = google.calendar({ version: "v3", auth });
-  const response = await calendar.events.insert({
-    calendarId: "primary",
-    conferenceDataVersion: 1,
-    sendUpdates: "all",
-    requestBody: {
-      summary: eventData.summary,
-      description: eventData.description,
-      start: {
-        dateTime: eventData.start,
-        timeZone: "Asia/Kolkata",
-      },
-      end: {
-        dateTime: eventData.end,
-        timeZone: "Asia/Kolkata",
-      },
-      conferenceData: {
-        createRequest: {
-          requestId: uuid(),
-        },
-      },
-      attendees: [{ email: eventData.email }],
-    },
-  });
-  return response.data; // Return the event details including the event ID
-}
 
-async function updateEvent(auth, eventId, eventData) {
-  console.log("i am in updateEvent");
-  const calendar = google.calendar({ version: "v3", auth });
-  const response = await calendar.events.update({
-    calendarId: "primary",
-    eventId: eventId,
-    sendUpdates: "all",
-    requestBody: {
-      summary: eventData.summary,
-      description: eventData.description,
-      start: {
-        dateTime: eventData.start,
-        timeZone: eventData.timeZone || "Asia/Kolkata",
-      },
-      end: {
-        dateTime: eventData.end,
-        timeZone: eventData.timeZone || "Asia/Kolkata",
-      },
-      attendees: eventData.attendees,
-    },
-  });
-  return response.data; // Return the updated event details
-}
 
-async function deleteEvent(auth, eventId) {
-  console.log("i am in deleteEvent");
-  const calendar = google.calendar({ version: "v3", auth });
-  await calendar.events.delete({
-    calendarId: "primary",
-    eventId: eventId,
-    sendUpdates: "all",
-  });
-}
 
-async function listEvents(auth) {
-  console.log("i am in listEvents");
-  const calendar = google.calendar({ version: "v3", auth });
-  const res = await calendar.events.list({
-    calendarId: "primary",
-    timeMin: new Date().toISOString(),
-    maxResults: 10,
-    singleEvents: true,
-    orderBy: "startTime",
-  });
-  const events = res.data.items;
-  return events;
-}
-
-async function getEventById(auth, eventId) {
-  //  Calendar API to fetch an event by its ID
-  const calendar = google.calendar({ version: "v3", auth });
-  const response = await calendar.events.get({
-    calendarId: "primary", // or the specific calendar ID you're working with
-    eventId: eventId,
-  });
-  return response.data;
-}
-
-app.get("/events/:id", async (req, res) => {
-  const eventId = req.params.id;
-  console.log(`Fetching event with ID: ${eventId}`);
-  try {
-    const event = await getEventById(auth, eventId);
-    if (event) {
-      res.send(event);
-    } else {
-      res.status(404).send("Event not found");
-    }
-  } catch (error) {
-    console.error("Error fetching event", error);
-    res.status(500).send("Error fetching event");
-  }
-});
-
-app.post("/event", async (req, res) => {
-  console.log("admin post");
-  const { event } = req.body;
-  console.log(event);
-  try {
-    const createdEvent = await addEvent(auth, event);
-    console.log(createdEvent);
-    res.status(200).send({
-      msg: "Event created successfully",
-      eventId: createdEvent.id, // Send back the event ID
-    });
-  } catch (error) {
-    console.error("Error creating event", error);
-    res.status(500).send("Error creating event");
-  }
-});
-
-app.put("/event/:eventId", admin, async (req, res) => {
-  console.log("admin put");
-  try {
-    const eventId = req.params.eventId;
-    const event = await updateEvent(auth, eventId, req.body);
-    console.log(event);
-    res.send({
-      msg: "Event updated successfully",
-      eventId: event.id,
-    });
-  } catch (error) {
-    console.error("Error updating event", error);
-    res.status(500).send("Error updating event");
-  }
-});
-
-app.delete("/event/:eventId", admin, async (req, res) => {
-  console.log("admin delete");
-  try {
-    await deleteEvent(auth, req.params.eventId);
-    res.send({ msg: "Event deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting event", error);
-    res.status(500).send("Error deleting event");
-  }
-});
-
-app.get("/events", admin, async (req, res) => {
-  console.log("admin get");
-  try {
-    const events = await listEvents(auth);
-    res.send(events);
-  } catch (error) {
-    console.error("Error listing events", error);
-    res.status(500).send("Error listing events");
-  }
-});
 
 app.get("/users", admin, async (req, res) => {
   await userRepository.retrieveAll((err, data) => {
@@ -285,30 +122,7 @@ const emailTemplate = (sessionId) => `
 </html>
 `;
 
-
-app.post("/create-checkout-session",admin, async (req, res) => {
-  const { email, amount } = req.body;
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ["card"],
-    line_items: [
-      {
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: "Appointment Booking",
-          },
-          unit_amount: amount,
-        },
-        quantity: 1,
-      },
-    ],
-    mode: "payment",
-    success_url: "http://localhost:3000",
-    cancel_url: "http://localhost:3000/cancel",
-    metadata: {
-      email: email || "",
-    },
-  });
+async function mailer(email,sessionId) {
   // Set up Nodemailer transporter
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -323,7 +137,7 @@ app.post("/create-checkout-session",admin, async (req, res) => {
     from: process.env.REACT_APP_USER,
     to: email,
     subject: "Payment Request from Hurr Consulting",
-    html: emailTemplate(session.id),
+    html: emailTemplate(sessionId),
   };
 
   transporter.sendMail(mailOptions, function (error, info) {
@@ -331,9 +145,58 @@ app.post("/create-checkout-session",admin, async (req, res) => {
       console.log("error", error);
       return;
     }
-    console.log("info", info);
+    // console.log("info", info);
   });
-  res.json({ id: session.id });
+}
+
+app.post("/create-checkout-session", async (req, res) => {
+  const { email, amount } = req.body;
+  const user = await userRepository.retrieveOne({email:email});
+  console.log(user);
+  if(!user){
+    return res.status(400).send("register with email")
+  }
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: "Appointment Booking",
+          },
+          unit_amount: amount *100,
+        },
+        quantity: 1,
+      },
+    ],
+    mode: "payment",
+    success_url: "http://localhost:3000",
+    cancel_url: "http://localhost:3000/cancel",
+    metadata: {
+      email: email || "",
+      amount:amount || 0,
+    },
+  });
+  console.log(session);
+  try {
+    await mailer(email,session.id);  
+    const payment = await paymentRepository.create({
+      payment_id:session.id,
+      email: email,
+      amount: amount,
+      status: "PENDING",
+      request_date: new Date(),
+      user_id:user.user_id
+    });
+    console.log(payment);
+    res.json({ id: session.id });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json(responseHandler(false, 500, "Server Error", null));
+  }
 });
 
 

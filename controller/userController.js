@@ -5,7 +5,7 @@ const { userRepository } = require("../repository");
 const { emailService } = require("../service");
 const jwt = require("jsonwebtoken");
 const jose = require("jose");
-const axios = require("axios");
+const axios = require("axios"); 
 
 exports.register = asyncHandler(async (req, res) => {
   console.log("register route in controller");
@@ -246,6 +246,15 @@ exports.retriveUser = async (req, res, next) => {
   const userId = req.user.user_id;
   const user = await userRepository.getProfile(userId);
   return res.status(200).json(responseHandler(false, 200, "success", user));
+};
+exports.retriveUsers = async (req, res, next) => {
+  const users = await userRepository.retrieveAll((err,data) => {
+    if(err) {
+      return res.status(400).send(err.message);
+    }
+    console.log(data);
+    return res.status(200).json(data);
+  });
 };
 
 exports.verifyToken = async (req, res, next) => {

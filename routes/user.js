@@ -6,4 +6,5 @@ const {auth } = require("../middleware")
 router.route("/").get(auth,userController.retriveUser)
 
 
+
 module.exports= router
