@@ -10,7 +10,8 @@ const stripe = require("stripe")(`${process.env.STRIPE_SECRET_KEY}`);
 const { userRepository, paymentRepository } = require("./repository/index.js");
 const { admin } = require("./middleware");
 const { paymentService } =require("./service/index.js");
-
+const {PaymentModel} = require("./model");
+const { DATE } = require("sequelize");
 
 
 
@@ -24,7 +25,7 @@ const sendReceiptEmail = async (email, sessionId) => {
   });
 
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: process.env.REACT_APP_USER,
     to: email,
     subject: 'Payment Confirmation from Hurr Consulting',
     html: `<p>Thank you for your payment. Your session ID is ${sessionId}.<br>Best regards,<br>Hurr Consulting</p>`,
@@ -59,9 +60,16 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
     const session = event.data.object;
     console.log(session);
     const email = session.metadata.email;
-    
-    // Send receipt email
-    await sendReceiptEmail(email, session.id);
+    const amount = session.metadata.amount;
+    console.log(email,amount)
+    const payment = await PaymentModel.findOne({where:{payment_id:session.id}});
+    console.log(payment);
+    payment.status = "PAID"
+    payment.payment_date = new Date().toISOString().split('T')[0];
+    await payment.save();
+
+    // // Send receipt email
+    // await sendReceiptEmail(email, session.id);
   }
   console.log("endOfWebhook");
   res.json({ received: true });
@@ -172,7 +180,6 @@ app.post("/create-checkout-session", async (req, res) => {
       email: email,
       amount: amount,
       status: "PENDING",
-      request_date: new Date(),
       user_id:user.user_id
     });
     console.log(payment);

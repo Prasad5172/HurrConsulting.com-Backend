@@ -23,14 +23,17 @@ const PaymentModel = db.define("payment", {
         allowNull: false,
     },
     request_date: {
-        type: DataTypes.DATE,
+        type: DataTypes.DATEONLY,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: () => {
+            // Return the current date in YYYY-MM-DD format
+            return new Date().toISOString().split('T')[0];
+        },
     },
     payment_date: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: Sequelize.NOW,
+        type: DataTypes.DATEONLY,
+        allowNull: true,
+        defaultValue: null,
     },
 }, {
     timestamps: false,
