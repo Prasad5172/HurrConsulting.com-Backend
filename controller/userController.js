@@ -121,11 +121,11 @@ exports.login = async (req, res, next) => {
   if (authHeader) {
     token = authHeader.split(" ")[1];
   }
-  console.log(token);
+  // console.log(token);
   if (token != null) {
     var googleUserData = jose.decodeJwt(token);
     // return res.send(googleUserData);
-    console.log(googleUserData);
+    // console.log(googleUserData);
     const { email, name, picture, email_verified } = googleUserData;
     let user = await userRepository.retrieveOne({ email: email });
     if(!user){

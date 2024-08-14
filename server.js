@@ -6,6 +6,7 @@ dotenv.config();
 var nodemailer = require("nodemailer");
 const { google } = require("googleapis");
 const { v4: uuid } = require("uuid");
+const  { responseHandler } = require("./helpers/handler.js");
 const stripe = require("stripe")(`${process.env.STRIPE_SECRET_KEY}`);
 const { userRepository, paymentRepository } = require("./repository/index.js");
 const { admin } = require("./middleware");
@@ -56,19 +57,39 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
   console.log("event",event);
+  var payment = null;
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    // const email = session.metadata.email;
-    // const amount = session.metadata.amount;
-    const payment = await PaymentModel.findOne({where:{payment_id:session.id}});
-    // console.log(payment);
-    payment.status = "PAID"
-    payment.payment_date = new Date().toISOString().split('T')[0];
-    await payment.save();
+    const sessionId = session.id;
+    const paymentIntentId = session.payment_intent;
 
-    // // Send receipt email
-    // await sendReceiptEmail(email, session.id);
+    let payment = await PaymentModel.findOne({ where: { payment_id: sessionId } });
+    if (payment) {
+      payment.status = "PAID";
+      payment.payment_date = new Date().toISOString().split('T')[0];
+      payment.payment_intent = paymentIntentId; // Store Payment Intent ID
+      await payment.save();
+    } else {
+      console.warn(`Payment record not found for session ID: ${sessionId}`);
+    }
   }
+  if(event.type === 'charge.refund.updated'){
+    const refund = event.data.object;
+    const refund_id = refund.id;
+    const payment_intent = refund.payment_intent;
+
+    let payment = await PaymentModel.findOne({ where: { payment_intent: payment_intent } });
+    if (payment) {
+      payment.status = "REFUNDED";
+      // payment.payment_date = new Date().toISOString().split('T')[0];
+      // payment.payment_intent = paymentIntentId; // Store Payment Intent ID
+      await payment.save();
+    } else {
+      console.warn(`Payment record not found for session ID: ${sessionId}`);
+    }
+  }
+
+  
   console.log("endOfWebhook");
   res.json({ received: true });
 });
@@ -141,7 +162,7 @@ async function mailer(email,sessionId) {
   });
 }
 
-app.post("/create-checkout-session", async (req, res) => {
+app.post("/create-checkout-session",admin, async (req, res) => {
   const { email, amount } = req.body;
   const user = await userRepository.retrieveOne({email:email});
   console.log(user);
@@ -190,9 +211,7 @@ app.post("/create-checkout-session", async (req, res) => {
   }
 });
 
-app.get("./payment/refund",async (req,res) => {
 
-})
 
 
 app.listen(8000, () => {

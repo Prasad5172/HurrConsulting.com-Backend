@@ -1,9 +1,8 @@
 const bcryptjs = require("bcryptjs");
 const { paymentService } = require("../service");
 const { responseHandler, asyncHandler, getJwtToken } = require("../helpers");
-const {PaymentModel} = require("../model");
-
-
+const { PaymentModel } = require("../model");
+const stripe = require("stripe")(`${process.env.STRIPE_SECRET_KEY}`);
 
 exports.retrieveAll = asyncHandler(async (req, res) => {
   try {
@@ -30,17 +29,17 @@ exports.retrieveAll = asyncHandler(async (req, res) => {
 });
 
 exports.refund = asyncHandler(async (req, res) => {
-  const { email } = req.body;
-  let user = null;
-  await paymentService.retrieveOneByEmail(email, (err, data) => {
-    if (err) {
-      return res.status(err.code).json(err);
-    }
-    user = data;
-  });
-  if (user) {
-    res.status(200).json("successful");
-  } else {
-    res.status(400).json("notsuccessful");
+  const { payment_intent } = req.body;
+  console.log(payment_intent);
+  try {
+    const refund = await stripe.refunds.create({
+      payment_intent: payment_intent,
+    });
+    res.status(200).json(refund);
+  } catch (error) {
+    console.log(error);
+    res.status(400).json(responseHandler(false, 400, error.message, null));
   }
 });
+
+
