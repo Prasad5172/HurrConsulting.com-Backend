@@ -35,6 +35,16 @@ const PaymentModel = db.define("payment", {
         allowNull: true,
         defaultValue: null,
     },
+    charge_id:{
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue:null
+    },
+    payment_intent:{
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue:null
+    }
 }, {
     timestamps: false,
     indexes: [

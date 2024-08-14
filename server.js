@@ -55,15 +55,13 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
   } catch (err) {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
-
+  console.log("event",event);
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    console.log(session);
-    const email = session.metadata.email;
-    const amount = session.metadata.amount;
-    console.log(email,amount)
+    // const email = session.metadata.email;
+    // const amount = session.metadata.amount;
     const payment = await PaymentModel.findOne({where:{payment_id:session.id}});
-    console.log(payment);
+    // console.log(payment);
     payment.status = "PAID"
     payment.payment_date = new Date().toISOString().split('T')[0];
     await payment.save();
@@ -182,7 +180,7 @@ app.post("/create-checkout-session", async (req, res) => {
       status: "PENDING",
       user_id:user.user_id
     });
-    console.log(payment);
+    // console.log(payment);
     res.json({ id: session.id });
   } catch (error) {
     console.log(error);
@@ -191,6 +189,10 @@ app.post("/create-checkout-session", async (req, res) => {
       .json(responseHandler(false, 500, "Server Error", null));
   }
 });
+
+app.get("./payment/refund",async (req,res) => {
+
+})
 
 
 app.listen(8000, () => {

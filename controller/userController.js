@@ -128,6 +128,11 @@ exports.login = async (req, res, next) => {
     console.log(googleUserData);
     const { email, name, picture, email_verified } = googleUserData;
     let user = await userRepository.retrieveOne({ email: email });
+    if(!user){
+      return res
+            .status(400)
+            .json(responseHandler(false, 400,"signup", null));
+    }
     const payload = {
       user: {
         user_id: user.user_id,
@@ -261,7 +266,7 @@ exports.verifyToken = async (req, res, next) => {
   console.log("userController/verifyToken");
   try {
     const token = req.headers.authorization.substring(7);
-    console.log(token);
+    // console.log(token);
     var id = null;
     jwt.verify(token, process.env.JWT_SECRET, (error, decoded) => {
       if (error) {

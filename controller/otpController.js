@@ -20,7 +20,7 @@ exports.verifyOtp = async (req,res,next) => {
             }
         ]
     });
-    console.log(user);
+    // console.log(user);
     if (!user || !user.otp) {
         return res.status(400).json("Invalid email or OTP");
     }
@@ -28,15 +28,15 @@ exports.verifyOtp = async (req,res,next) => {
     const otpInDb = user.otp.sms;
     const curDate = new Date().getTime();
     const expiresIn = user.otp.expires_in;
-    console.log(expiresIn);
-    console.log(curDate);
+    // console.log(expiresIn);
+    // console.log(curDate);
     // Check if OTP has expired
     if ( curDate > expiresIn ) {
         return res.status(400).json("OTP has expired");
     }
     if (!otpInDb ) { return res.status(400).json("expired")}
     const validUser = await bcryptjs.compare(otp, otpInDb);
-    console.log("validUser",validUser);
+    // console.log("validUser",validUser);
     if ( validUser ){
         user.is_verified = true;
         user.save()
@@ -51,8 +51,8 @@ exports.verifyOtp = async (req,res,next) => {
             if (err) {
                 return res.status(err.code).json(err);
             }
-            console.log(user)
-            console.log(data);
+            // console.log(user)
+            // console.log(data);
             return res.status(200).json({ ...data, name: user.first_name, email: user.email,is_admin:user.is_admin })
         })
     }
