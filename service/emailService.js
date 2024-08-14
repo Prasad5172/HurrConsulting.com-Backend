@@ -26,7 +26,7 @@ const emailTemplate = (otp) => {
         .header {
             text-align: center;
             padding: 10px;
-            background-color: #007bff;
+            background-color: #d2e1de;
             color: white;
         }
         .footer {
@@ -56,8 +56,11 @@ const emailTemplate = (otp) => {
 <body>
     <div class="container">
         <div class="content">
+                <div style="height: 400px; overflow: hidden; margin-bottom: 2px;">
+                    <img src="https://firebasestorage.googleapis.com/v0/b/syed-ali-cloud-storage.appspot.com/o/hurrconsulting.svg?alt=media&token=823535f9-2d39-4dab-a087-edb4b90bab5b" alt="logo" width="100%">
+                </div>
             <div class="header">
-                <h1>Welcome to Hurr Consulting</h1>
+                <h1 style="color: #343434;">Welcome to Hurr Consulting</h1>
             </div>
             <h1>Verification code</h1>
             <p>Please use the verification code below to sign in.</p>
@@ -65,16 +68,16 @@ const emailTemplate = (otp) => {
             <p>Thanks,<br> Team</p>
         </div>
         <div class="footer">
-            <p>&copy; 2024 lawfirm. All rights reserved.</p>
+            <p>&copy; 2024 HurrConsulting. All rights reserved.</p>
             <p style="color: #666;">Follow Us</p>
             <div class="social-icons">
                     <img src="https://ci3.googleusercontent.com/meips/ADKq_NY9q-6UhdOTQdgdrF-3jH3MzwaQMIQFBXHd8kFqpS1Ds2GATCAHHI7e8X8EvBTN0MFz0MV_wSZwL-Dw7Ems7xPe3kJuCLB2UrPZ2m7-EGVod05RDK-dZBexdbhWBOIuXA=s0-d-e1-ft#http://www.mailmktg.makemytrip.com/images/footer/instagram_mail_footer.png" alt="Instagram" width="16" style="width:16px; margin-right: 10px;" class="CToWUd" data-bit="iit">
                     <img src="https://ci3.googleusercontent.com/meips/ADKq_NZg7t62ijRodKMvU2Zf08hyWHujLFRPxGJx3VujB9LAlO_7fO-SPtDbskoJ5fK4xSrZmEbWaeCYmyG-iQk-PiAKaawgd9u0m4On6pq7IUbIGrPxdUdXu-hsMgpqQPk=s0-d-e1-ft#http://www.mailmktg.makemytrip.com/images/footer/twitter_mail_footer.png" width="20" style="width:20px;" alt="Twitter" class="CToWUd" data-bit="iit">
             </div>
             <div>
-                <a style="font-size: small;color: #638df8;">Contact Us</a>
+                <a style="font-size: small;color: #638df8;" target="_blank" href="http://localhost:3000/contact">Contact Us</a>
                 <span style="margin-inline: 5px;">|</span>
-                <a style="font-size: small; color: #638df8;">Privacy Policy</a>
+                <a style="font-size: small; color: #638df8;" target="_blank" href="http://localhost:3000/about">About Us</a>
             </div>
         </div>
     </div>
