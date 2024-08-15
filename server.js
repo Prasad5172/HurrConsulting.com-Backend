@@ -167,7 +167,6 @@ const emailTemplate = (sessionId) => `
         <div class="content">
 
             <div style="height: 400px; overflow: hidden; margin-bottom: 2px;">
-               <img src="https://media.istockphoto.com/id/1821049147/photo/couple-kayaking-down-florida-springs-florida-freshwater-river-springs-wide-angle.jpg?s=1024x1024&w=is&k=20&c=uFFxvLMpzJiapOATIveMGwydM4zAlYGJYPf--KePdmA=" alt="logo" width="100%">
                <img src="https://vtm.ai/about-1.jpg" alt="logo" width="100%">
             </div>
             <div class="header">
@@ -202,7 +201,6 @@ const emailTemplate = (sessionId) => `
 `;
 
 async function mailer(email, sessionId) {
-  const imageAttachment = await readFileAsync('hurrconsulting.svg');
   // Set up Nodemailer transporter
   const transporter = nodemailer.createTransport({
     service: "gmail",

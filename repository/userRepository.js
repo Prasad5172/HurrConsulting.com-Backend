@@ -17,7 +17,19 @@ exports.retrieveOne = async (params) => await UserModel.findOne({ where: params 
     
     
     
+exports.getProfile = async (userId) => {
+    console.log("getProfile")
+    return await UserModel.findOne({ 
+        where: {user_id:userId},
+        attributes:["user_id","first_name","email","image_url",'is_admin']
+     })
+    .catch((error) => {
+        console.log("getProfile in UserRepository")
+        console.log('error: ', error);
+        throw new Error('User not found');
+    })
 
+};
 
 
 exports.retrieveAll = async (result) => {

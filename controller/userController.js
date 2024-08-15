@@ -301,3 +301,10 @@ exports.verifyToken = async (req, res, next) => {
     return res.status(500).json(responseHandler(false, 500, error.message, null));
   }
 };
+
+
+exports.retriveUser = async (req, res, next) => {
+  const userId = req.user.user_id;
+  const user = await userRepository.getProfile(userId);
+  return res.status(200).json(responseHandler(false, 200, "success", user));
+};
