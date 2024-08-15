@@ -247,11 +247,7 @@ exports.protected = async (req, res, next) => {
   return res.status(200).send("awesome it works for protected route");
 };
 
-exports.retriveUser = async (req, res, next) => {
-  const userId = req.user.user_id;
-  const user = await userRepository.getProfile(userId);
-  return res.status(200).json(responseHandler(false, 200, "success", user));
-};
+
 exports.retriveUsers = async (req, res, next) => {
   const users = await userRepository.retrieveAll((err,data) => {
     if(err) {
@@ -265,32 +261,43 @@ exports.retriveUsers = async (req, res, next) => {
 exports.verifyToken = async (req, res, next) => {
   console.log("userController/verifyToken");
   try {
-    const token = req.headers.authorization.substring(7);
-    // console.log(token);
-    var id = null;
-    jwt.verify(token, process.env.JWT_SECRET, (error, decoded) => {
-      if (error) {
-        console.log(error);
-        return res
-          .status(400)
-          .json(responseHandler(false, 400, "Try again", error));
-      }
-      console.log(decoded);
-      id = decoded.user.user_id;
-    });
-    var user = await userRepository.getProfile(id);
-    if (user) {
-      return res
-        .status(200)
-        .json(responseHandler(true, 200, "verified succesfully", user));
+    const authHeader = req.headers.authorization;
+    console.log(authHeader);
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json(responseHandler(false, 401, "No token provided", null));
     }
-    return res
-      .status(400)
-      .json(responseHandler(false, 400, "token is not valid", null));
+
+    const token = authHeader.substring(7); // Remove "Bearer " from the token4
+    console.log(token)
+    // Convert jwt.verify to return a promise
+    const decodeToken = (token) => {
+      return new Promise((resolve, reject) => {
+        jwt.verify(token, process.env.JWT_SECRET, (error, decoded) => {
+          if (error) {
+            return reject(error);
+          }
+          resolve(decoded);
+        });
+      });
+    };
+
+    const decoded = await decodeToken(token);
+    const id = decoded.user.user_id;
+
+    // Fetch user profile
+    const user = await userRepository.getProfile(id);
+
+    if (user) {
+      return res.status(200).json(responseHandler(true, 200, "Verified successfully", user));
+    }
+
+    return res.status(400).json(responseHandler(false, 400, "Token is not valid", null));
+
   } catch (error) {
-    console.log(error);
-    return res
-      .status(400)
-      .json(responseHandler(false, 500, error.message, null));
+    console.log("Error:", error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(400).json(responseHandler(false, 400, "Malformed token", null));
+    }
+    return res.status(500).json(responseHandler(false, 500, error.message, null));
   }
 };

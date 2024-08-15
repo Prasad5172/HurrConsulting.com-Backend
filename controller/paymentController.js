@@ -6,15 +6,22 @@ const stripe = require("stripe")(`${process.env.STRIPE_SECRET_KEY}`);
 
 exports.retrieveAll = asyncHandler(async (req, res) => {
   try {
-    // Optionally, retrieve query parameters from the request
-    const { email } = req.query; // Example: ?email=user@example.com
-
-    // Find all payments, optionally filtering by email if provided
+    // Retrieve query parameters from the request
+    const { email, sortBy, sortOrder } = req.query; // Example: ?email=user@example.com&sortBy=request_date&sortOrder=desc
+    // Initialize query options
     const queryOptions = {};
+    // Filter by email if provided
     if (email) {
-      queryOptions.where = { email }; // Filter by email if provided
+      queryOptions.where = { email };
     }
+    // Set default sortBy and sortOrder
+    const sortField = sortBy || 'request_date'; // Default to 'request_date'
+    const sortDirection = sortOrder === 'desc' ? 'DESC' : 'ASC'; // Default to 'ASC'
 
+    // Add order option to query options
+    queryOptions.order = [[sortField, sortDirection]];
+
+    // Fetch payments with sorting
     const payments = await PaymentModel.findAll(queryOptions);
 
     return res.status(200).json(payments);
