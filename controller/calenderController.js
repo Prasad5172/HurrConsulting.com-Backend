@@ -14,7 +14,7 @@ const auth = new google.auth.JWT(
   null,
   CREDENTIALS.private_key,
   SCOPES,
-  process.env.ATTORNEY_MAIL
+  process.env.REACT_APP_USER
 );
 
 async function addEvent(auth, eventData) {

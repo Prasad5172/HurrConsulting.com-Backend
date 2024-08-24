@@ -4,3 +4,4 @@ node_modules/
 # Ignore .env file
 .env
 hurr-consulting-431308-d2aaa97d93b5.json
+build.zip
