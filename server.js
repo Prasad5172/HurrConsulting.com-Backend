@@ -276,6 +276,10 @@ app.post("/create-checkout-session", admin, async (req, res) => {
   }
 });
 
+app.get("/", async (req, res) => {
+  return res.status(200).json("working");
+});
+
 app.listen(8000, () => {
   console.log("Server listening on port 8000");
 });
