@@ -1,34 +1,35 @@
 const bcrypt = require('bcryptjs')
-const { responseHandler } = require('../helpers');
-const { paymentRepository } = require("../repository")
+const { responseHandler } = require('../helpers/handler.js');
+const  paymentRepository  = require("../repository/paymentRepository.js")
 
 
-exports.create = async (newPayment) => {
+const create = async (newPayment) => {
   const insertObj = await paymentRepository.create(newPayment);
   return insertObj;
 };
 
 
-exports.update = async (email, result) => {
+const update = async (email, result) => {
   const response = await paymentRepository.retrieveOne({email:email});
   result(null, responseHandler(true, 200, 'Success', response));
 };
-exports.refund = async (email, result) => {
+const refund = async (email, result) => {
   const response = await paymentRepository.retrieveOne({email:email});
   result(null, responseHandler(true, 200, 'Success', response));
 };
-exports.retrieveAll = (result) => paymentRepository.retrieveAll(result);
+const retrieveAll = (result) => paymentRepository.retrieveAll(result);
 
 
-exports.retriveOne = async (paymentId, result) => {
+const retriveOne = async (paymentId, result) => {
   const response = await paymentRepository.retrieveOne({payment_id:paymentId});
   // console.log(response)
   result(null, responseHandler(true, 200, 'Success', response));
 };
 
 
-exports.retrieveOneByEmail = async (email, result) => {
+const retrieveOneByEmail = async (email, result) => {
   const response = await paymentRepository.retrieveOne({email:email});
   result(null, responseHandler(true, 200, 'Success', response));
 };
 
+module.exports = {create,update,refund,retrieveAll,retriveOne,retrieveOneByEmail}

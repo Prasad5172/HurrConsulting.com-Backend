@@ -1,21 +1,23 @@
 const bcryptjs = require("bcryptjs");
-const { userService } = require("../service");
-const { responseHandler, asyncHandler, getJwtToken } = require("../helpers");
-const { userRepository } = require("../repository");
-const { emailService } = require("../service");
+const userService = require("../service/userService.js");
+const { responseHandler, asyncHandler } = require("../helpers/handler.js");
+const { getJwtToken } = require("../helpers/jwt.js");
+const userRepository = require("../repository/userRepository.js");
+const emailService = require("../service/emailService.js");
 const jwt = require("jsonwebtoken");
-const jose = require("jose");
-const axios = require("axios"); 
+// const jose = require("jose");
+const axios = require("axios");
 
-exports.register = asyncHandler(async (req, res) => {
+const register = asyncHandler(async (req, res) => {
   console.log("register route in controller");
+  
   const authHeader = req.headers.authorization;
   // console.log("authHeader"+authHeader);
   let token = null;
   if (authHeader) {
     token = authHeader.split(" ")[1];
   }
-  // return res.send(token);
+//   return res.send(token);
   if (token != null) {
     const googleUserData = await axios.get(
       "https://www.googleapis.com/oauth2/v3/userinfo",
@@ -67,17 +69,15 @@ exports.register = asyncHandler(async (req, res) => {
       if (err) {
         return res.status(err.code).json(err);
       }
-      return res
-        .status(200)
-        .json({
-          ...data,
-          name: user.first_name,
-          email: user.email,
-          is_admin: user.is_admin,
-        });
+      return res.status(200).json({
+        ...data,
+        name: user.first_name,
+        email: user.email,
+        is_admin: user.is_admin,
+      });
     });
   }
-
+    // return res.json("register route");
   try {
     var checkUser = await userRepository.retrieveOne({ email: req.body.email });
     console.log("checkUser" + checkUser);
@@ -95,7 +95,8 @@ exports.register = asyncHandler(async (req, res) => {
       checkUser.save();
       // console.log("after",checkUser)
     }
-    console.log("checkUser",checkUser)
+    // return res.json(checkUser);
+    console.log("checkUser", checkUser);
     await emailService.sendOtpToEmail(
       req.body,
       checkUser.user_id,
@@ -114,7 +115,7 @@ exports.register = asyncHandler(async (req, res) => {
   }
 });
 
-exports.login = async (req, res, next) => {
+const login = async (req, res, next) => {
   console.log("login");
   const authHeader = req.headers.authorization;
   let token = null;
@@ -128,10 +129,8 @@ exports.login = async (req, res, next) => {
     // console.log(googleUserData);
     const { email, name, picture, email_verified } = googleUserData;
     let user = await userRepository.retrieveOne({ email: email });
-    if(!user){
-      return res
-            .status(400)
-            .json(responseHandler(false, 400,"signup", null));
+    if (!user) {
+      return res.status(400).json(responseHandler(false, 400, "signup", null));
     }
     const payload = {
       user: {
@@ -147,14 +146,12 @@ exports.login = async (req, res, next) => {
             .status(err.code)
             .json(responseHandler(false, err.code, err.message, null));
         }
-        return res
-          .status(200)
-          .json({
-            ...data,
-            name: user.first_name,
-            email: user.email,
-            is_admin: user.is_admin,
-          });
+        return res.status(200).json({
+          ...data,
+          name: user.first_name,
+          email: user.email,
+          is_admin: user.is_admin,
+        });
       });
     }
     console.log("user.is_google_linked false");
@@ -190,14 +187,12 @@ exports.login = async (req, res, next) => {
         if (err) {
           return res.status(err.code).json(err);
         }
-        return res
-          .status(200)
-          .json({
-            ...data,
-            name: user.first_name,
-            email: user.email,
-            is_admin: user.is_admin,
-          });
+        return res.status(200).json({
+          ...data,
+          name: user.first_name,
+          email: user.email,
+          is_admin: user.is_admin,
+        });
       });
     } else {
       return res
@@ -212,7 +207,7 @@ exports.login = async (req, res, next) => {
   }
 };
 
-exports.checkEmail = asyncHandler(async (req, res) => {
+const checkEmail = asyncHandler(async (req, res) => {
   const { email } = req.body;
   let user = null;
   await userService.retrieveOneByEmail(email, (err, data) => {
@@ -228,7 +223,7 @@ exports.checkEmail = asyncHandler(async (req, res) => {
   }
 });
 
-exports.resetPassword = asyncHandler(async (req, res, next) => {
+const resetPassword = asyncHandler(async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const passwordHash = await bcryptjs.hash(password, 10);
@@ -242,15 +237,10 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
   }
 });
 
-exports.protected = async (req, res, next) => {
-  console.log("protected");
-  return res.status(200).send("awesome it works for protected route");
-};
-
-
-exports.retriveUsers = async (req, res, next) => {
-  const users = await userRepository.retrieveAll((err,data) => {
-    if(err) {
+const retriveUsers = async (req, res, next) => {
+    // return res.status(200).send(process.env.SERVICE_ACCOUNT_PRIVATE_KEY);
+  const users = await userRepository.retrieveAll((err, data) => {
+    if (err) {
       return res.status(400).send(err.message);
     }
     console.log(data);
@@ -258,17 +248,19 @@ exports.retriveUsers = async (req, res, next) => {
   });
 };
 
-exports.verifyToken = async (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   console.log("userController/verifyToken");
   try {
     const authHeader = req.headers.authorization;
     console.log(authHeader);
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json(responseHandler(false, 401, "No token provided", null));
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res
+        .status(401)
+        .json(responseHandler(false, 401, "No token provided", null));
     }
 
     const token = authHeader.substring(7); // Remove "Bearer " from the token4
-    console.log(token)
+    console.log(token);
     // Convert jwt.verify to return a promise
     const decodeToken = (token) => {
       return new Promise((resolve, reject) => {
@@ -288,23 +280,39 @@ exports.verifyToken = async (req, res, next) => {
     const user = await userRepository.getProfile(id);
 
     if (user) {
-      return res.status(200).json(responseHandler(true, 200, "Verified successfully", user));
+      return res
+        .status(200)
+        .json(responseHandler(true, 200, "Verified successfully", user));
     }
 
-    return res.status(400).json(responseHandler(false, 400, "Token is not valid", null));
-
+    return res
+      .status(400)
+      .json(responseHandler(false, 400, "Token is not valid", null));
   } catch (error) {
     console.log("Error:", error);
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(400).json(responseHandler(false, 400, "Malformed token", null));
+    if (error.name === "JsonWebTokenError") {
+      return res
+        .status(400)
+        .json(responseHandler(false, 400, "Malformed token", null));
     }
-    return res.status(500).json(responseHandler(false, 500, error.message, null));
+    return res
+      .status(500)
+      .json(responseHandler(false, 500, error.message, null));
   }
 };
 
-
-exports.retriveUser = async (req, res, next) => {
+const retriveUser = async (req, res, next) => {
   const userId = req.user.user_id;
   const user = await userRepository.getProfile(userId);
   return res.status(200).json(responseHandler(false, 200, "success", user));
+};
+
+module.exports = {
+  register,
+  login,
+  retriveUser,
+  verifyToken,
+  resetPassword,
+  checkEmail,
+  retriveUsers,
 };

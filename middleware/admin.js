@@ -1,5 +1,5 @@
 const JWT = require('jsonwebtoken');
-const { responseHandler } = require('../helpers');
+const { responseHandler } = require('../helpers/handler.js');
 
 const admin = (req, res, next) => {
     console.log("admin middleware")

@@ -3,7 +3,7 @@ dotenv.config();
 const otpGenerator = require("otp-generator");
 var nodemailer = require("nodemailer");
 const otpService = require("./otpService");
-const { responseHandler } = require("../helpers");
+const { responseHandler } = require("../helpers/handler.js");
 
 const emailTemplate = (otp) => {
   return ( 
@@ -88,7 +88,7 @@ const emailTemplate = (otp) => {
 } 
 
 
-exports.mailTransporter = async (isFormData,data,otp,result) => {
+const mailTransporter = async (isFormData,data,otp,result) => {
     console.log("mailTransporter")
     var transporter = nodemailer.createTransport({
         service: "gmail",
@@ -116,7 +116,7 @@ exports.mailTransporter = async (isFormData,data,otp,result) => {
 }
 
 
-exports.sendOtpToEmail = async (data,userId,result) => {
+const sendOtpToEmail = async (data,userId,result) => {
     console.log("sendOtpToMail")
         const otp = otpGenerator.generate(6, {
             digits: true,
@@ -126,11 +126,13 @@ exports.sendOtpToEmail = async (data,userId,result) => {
             alphabets: false,
         });
         await otpService.create({sms: otp,user_id:userId});
-        await this.mailTransporter(false,data, otp,result);
+        await mailTransporter(false,data, otp,result);
         console.log(otp)
         return otp;
 };
 
-exports.sendData = async (contactData,result) => {
-        await this.mailTransporter(true,contactData,0,result);
+const sendData = async (contactData,result) => {
+        await mailTransporter(true,contactData,0,result);
 };
+
+module.exports = {mailTransporter,sendOtpToEmail,sendData}

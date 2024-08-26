@@ -1,10 +1,11 @@
-const { responseHandler } = require('../helpers');
-const utils = require('../utils');
-const { UserModel, PaymentModel } = require("../model")
+const { responseHandler } = require('../helpers/handler.js');
+const utils = require('../utils/conditional.utils.js');
+const { UserModel } = require("../model/user.js")
+const { PaymentModel } = require("../model/Payment.js")
 
 
 
-exports.create = async (newPayment) => {
+const create = async (newPayment) => {
     console.log("create payment")
     return await PaymentModel.create(newPayment).catch((error) => {
         console.log(error.message)
@@ -13,13 +14,13 @@ exports.create = async (newPayment) => {
 }
 
 // params is object
-exports.retrieveOne = async (params) => await UserModel.findOne({ where: params })
+const retrieveOne = async (params) => await UserModel.findOne({ where: params })
     
 
     
 
 
-exports.retrieveAll = async (result) => {
+const retrieveAll = async (result) => {
     const queryResult = await PaymentModel.findAll({
         attributes: [
             'payment_id',
@@ -34,9 +35,7 @@ exports.retrieveAll = async (result) => {
         console.log(error);
         return result(responseHandler(false, 500, 'Something went wrong!', null), null);
     });
-    if (utils.conditional.isArrayEmpty(queryResult)) {
-        return result(responseHandler(false, 404, 'There are no Payment Till now', null), null);
-    }
     return result(null, responseHandler(true, 200, 'Success', queryResult));
 }
 
+module.exports = {create,retrieveAll,retrieveOne}

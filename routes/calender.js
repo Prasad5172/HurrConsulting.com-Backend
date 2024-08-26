@@ -2,8 +2,8 @@ const express = require("express")
 const router = express.Router()
 
 
-const {calenderController} = require("../controller")
-const {admin} = require("../middleware")
+const calenderController = require("../controller/calenderController.js")
+const admin = require("../middleware/admin.js")
 
 router.route("/:eventId").get(admin,calenderController.getEvent)
 router.route("/").post(admin,calenderController.createEvent)

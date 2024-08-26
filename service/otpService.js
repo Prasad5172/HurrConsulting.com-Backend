@@ -1,13 +1,13 @@
 const bcryptjs = require("bcryptjs")
-const { OtpModel } = require("../model")
-const { otpRepository } = require("../repository")
+const { OtpModel } = require("../model/otp.js")
+const  otpRepository  = require("../repository/otpRepository.js")
 
 const Otp = (model) => ({
     sms: model.sms,
     user_id: model.user_id,
 })
 
-exports.create = async (newUser) => {
+const create = async (newUser) => {
     console.log("otpRepository create");
     const otpHash = await bcryptjs.hash(newUser.sms, 10);
     newUser.sms = otpHash;
@@ -40,6 +40,8 @@ exports.create = async (newUser) => {
 };
 
 
-exports.retriveOtp = async (id) => {
+const retriveOtp = async (id) => {
     return await otpRepository.retriveOtp(id);
 }
+
+module.exports = {create,retriveOtp}

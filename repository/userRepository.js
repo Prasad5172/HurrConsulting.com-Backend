@@ -1,10 +1,10 @@
-const { responseHandler } = require('../helpers');
-const utils = require('../utils');
-const { UserModel, PlaylistModel } = require("../model")
+const { responseHandler } = require('../helpers/handler.js');
+const utils = require('../utils/conditional.utils.js');
+const { UserModel } = require("../model/user.js")
 
 
 
-exports.create = async (newUser) => {
+const create = async (newUser) => {
     console.log("create user")
     return await UserModel.create(newUser).catch((error) => {
         console.log(error.message)
@@ -13,11 +13,11 @@ exports.create = async (newUser) => {
 }
 
 
-exports.retrieveOne = async (params) => await UserModel.findOne({ where: params })
+const retrieveOne = async (params) => await UserModel.findOne({ where: params })
     
     
     
-exports.getProfile = async (userId) => {
+const getProfile = async (userId) => {
     console.log("getProfile")
     return await UserModel.findOne({ 
         where: {user_id:userId},
@@ -32,7 +32,7 @@ exports.getProfile = async (userId) => {
 };
 
 
-exports.retrieveAll = async (result) => {
+const retrieveAll = async (result) => {
     const queryResult = await UserModel.findAll({
         attributes: [
             'user_id',
@@ -44,9 +44,7 @@ exports.retrieveAll = async (result) => {
         console.log(error);
         return result(responseHandler(false, 500, 'Something went wrong!', null), null);
     });
-    if (utils.conditional.isArrayEmpty(queryResult)) {
-        return result(responseHandler(false, 404, 'There are no users', null), null);
-    }
     return result(null, responseHandler(true, 200, 'Success', queryResult));
 }
 
+module.exports = {create ,retrieveAll,retrieveOne,getProfile}

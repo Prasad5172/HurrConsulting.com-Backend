@@ -1,10 +1,10 @@
 const bcryptjs = require("bcryptjs");
-const { paymentService } = require("../service");
-const { responseHandler, asyncHandler, getJwtToken } = require("../helpers");
-const { PaymentModel } = require("../model");
+const paymentService = require("../service/paymentService.js");
+const { responseHandler, asyncHandler,  } = require("../helpers/handler.js");
+const { PaymentModel } = require("../model/Payment.js");
 const stripe = require("stripe")(`${process.env.STRIPE_SECRET_KEY}`);
 
-exports.retrieveAll = asyncHandler(async (req, res) => {
+const retrieveAll = asyncHandler(async (req, res) => {
   try {
     // Retrieve query parameters from the request
     const { email, sortBy, sortOrder } = req.query; // Example: ?email=user@example.com&sortBy=request_date&sortOrder=desc
@@ -35,7 +35,7 @@ exports.retrieveAll = asyncHandler(async (req, res) => {
   }
 });
 
-exports.refund = asyncHandler(async (req, res) => {
+const refund = asyncHandler(async (req, res) => {
   const { payment_intent } = req.body;
   console.log(payment_intent);
   try {
@@ -50,3 +50,4 @@ exports.refund = asyncHandler(async (req, res) => {
 });
 
 
+module.exports = {refund,retrieveAll}

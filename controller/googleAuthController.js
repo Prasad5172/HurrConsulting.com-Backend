@@ -1,5 +1,5 @@
-const {responseHandler} = require("../helpers")
-exports.googleAuthApi =async (access_token,result) => {
+const {responseHandler} = require("../helpers/handler.js")
+const googleAuthApi =async (access_token,result) => {
     try {
         const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
             method:"GET",
@@ -19,4 +19,4 @@ exports.googleAuthApi =async (access_token,result) => {
     }
 }
 
-
+module.exports = {googleAuthApi}

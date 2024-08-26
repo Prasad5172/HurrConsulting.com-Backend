@@ -1,10 +1,10 @@
 const bcryptjs = require("bcryptjs")
-const { OtpModel } = require("../model")
+const { OtpModel } = require("../model/otp.js")
 const userRepository = require("./userRepository")
 
 
 // newuser ={email,sms}
-exports.create = async (newUser) => {
+const create = async (newUser) => {
     const expiresIn = new Date(Date.now() + 10 * 1000);
     return await OtpModel.create({...newUser,expires_in:expiresIn}).catch((error) => {
         console.log(error.message)
@@ -13,11 +13,12 @@ exports.create = async (newUser) => {
 }
 
 // int id
-exports.deleteOtpByUserId = async (id) => {
+const deleteOtpByUserId = async (id) => {
     await OtpModel.destory({ where: { user_id: id } });
 };
 
-exports.retriveOtp = async (id) => {
+const retriveOtp = async (id) => {
     return await OtpModel.findOne({where:{user_id:id}});
 }
 
+module.exports = {create,deleteOtpByUserId,retriveOtp} 

@@ -1,11 +1,13 @@
 const dotenv = require("dotenv");
 dotenv.config();
 const bcryptjs = require("bcryptjs");
-const {UserModel,OtpModel} = require("../model");
-const { responseHandler, asyncHandler, getJwtToken } = require('../helpers');
+const {UserModel} = require("../model/user.js");
+const {OtpModel} = require("../model/otp.js");
+const {  getJwtToken } = require('../helpers/jwt.js');
+const { responseHandler } = require('../helpers/handler.js');
 
 
-exports.verifyOtp = async (req,res,next) => {
+const verifyOtp = async (req,res,next) => {
     console.log("verifyOtp");
     const {email,otp} = req.body;
     // let user = await userRepository.retrieveOne({email:email})
@@ -60,3 +62,5 @@ exports.verifyOtp = async (req,res,next) => {
         return res.status(400).json(responseHandler(false,400,"wrongOtp",null))
     }
 }
+
+module.exports = {verifyOtp}

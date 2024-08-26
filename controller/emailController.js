@@ -5,12 +5,13 @@ const bcryptjs = require("bcryptjs");
 const otpGenerator = require("otp-generator");
 var nodemailer = require("nodemailer");
 const { QueryTypes } = require('sequelize');
-const {emailService, userService}  = require("../service")
-const {userRepository} = require("../repository")
-const { responseHandler } = require("../helpers");
+const emailService  = require("../service/emailService.js")
+const  userService  = require("../service/userService.js")
+const userRepository = require("../repository/userRepository.js")
+const { responseHandler } = require("../helpers/handler.js");
 
 
-exports.sendOtp = async (req, res,next) => {
+const sendOtp = async (req, res,next) => {
     const {email} = req.body;
     console.log("sendemail");
     const user = await userRepository.retrieveOne({email:email});
@@ -33,7 +34,7 @@ exports.sendOtp = async (req, res,next) => {
     }
 };
 
-exports.sendContactData = async (req, res,next) => {
+const sendContactData = async (req, res,next) => {
     
     console.log("senddata");
     try {
@@ -53,4 +54,4 @@ exports.sendContactData = async (req, res,next) => {
 
 
 
-
+module.exports = {sendOtp,sendContactData}

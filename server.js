@@ -11,10 +11,11 @@ const readFileAsync = promisify(fs.readFile);
 const { v4: uuid } = require("uuid");
 const { responseHandler } = require("./helpers/handler.js");
 const stripe = require("stripe")(`${process.env.STRIPE_SECRET_KEY}`);
-const { userRepository, paymentRepository } = require("./repository/index.js");
-const { admin } = require("./middleware");
-const { paymentService } = require("./service/index.js");
-const { PaymentModel } = require("./model");
+const  userRepository  = require("./repository/userRepository.js");
+const  paymentRepository  = require("./repository/paymentRepository.js");
+const  admin  = require("./middleware/admin.js");
+const  paymentService  = require("./service/paymentService.js");
+const PaymentModel  = require("./model/Payment.js");
 const { DATE } = require("sequelize");
 
 const sendReceiptEmail = async (email, sessionId) => {
@@ -111,7 +112,10 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use("/", require("./routes/index.js"));
+app.use("/auth",require("./routes/auth.js"))
+app.use("/users",require("./routes/users.js"))
+app.use("/payment",require("./routes/payment.js"))
+app.use("/event",require("./routes/calender.js"))
 
 const emailTemplate = (sessionId) => `
 <!DOCTYPE html>
@@ -279,6 +283,22 @@ app.post("/create-checkout-session", admin, async (req, res) => {
 app.get("/", async (req, res) => {
   return res.status(200).json("working");
 });
+
+app.all("*",(req,res,next) => {
+  const error = new Error(`Can't find ${req.originalUrl} on the server!`);
+  err.status = 'fail';
+  err.statusCode = 404;
+  next(err)
+})
+
+app.use((error,req,res,next) => {
+  error.statusCode = error.statusCode || 500;
+  error.status = error.status || 'error';
+ res.status(error.statusCode).json({
+  status:error.status,
+  message : error.message
+ });
+})
 
 app.listen(8000, () => {
   console.log("Server listening on port 8000");

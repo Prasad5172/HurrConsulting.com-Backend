@@ -1,5 +1,5 @@
 const JWT = require('jsonwebtoken');
-const { responseHandler } = require('../helpers');
+const { responseHandler } = require('../helpers/handler.js');
 
 const auth = (req, res, next) => {
   const token = req.headers.authorization.substring(7)

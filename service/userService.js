@@ -1,9 +1,10 @@
 const bcrypt = require('bcryptjs')
-const { responseHandler } = require('../helpers');
-const { userRepository } = require("../repository")
+const { responseHandler } = require('../helpers/handler.js');
+const  userRepository  = require("../repository/userRepository.js");
+const { retriveOne } = require('./paymentService');
 
 
-exports.register = async (newUser) => {
+const register = async (newUser) => {
   const salt = await bcrypt.genSalt(10);
   newUser.password = await bcrypt.hash(newUser.password, salt);
   const insertObj = await userRepository.create(newUser);
@@ -11,17 +12,19 @@ exports.register = async (newUser) => {
 };
 
 
-exports.retrieveAll = (result) => userRepository.retrieveAll(result);
+const retrieveAll = (result) => userRepository.retrieveAll(result);
 
 
-exports.retriveOneById = async (userId, result) => {
+const retriveOneById = async (userId, result) => {
   const response = await userRepository.retrieveOne({id:userId});
   // console.log(response)
   result(null, responseHandler(true, 200, 'Success', response));
 };
 
 
-exports.retrieveOneByEmail = async (email, result) => {
+const retrieveOneByEmail = async (email, result) => {
   const response = await userRepository.retrieveOne({email:email});
   result(null, responseHandler(true, 200, 'Success', response));
 };
+
+module.exports = {register,retriveOneById,retrieveAll,retrieveOneByEmail}
