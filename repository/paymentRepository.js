@@ -14,7 +14,7 @@ const create = async (newPayment) => {
 }
 
 // params is object
-const retrieveOne = async (params) => await UserModel.findOne({ where: params })
+const retrieveOne = async (params) => await PaymentModel.findOne({ where: params })
     
 
     

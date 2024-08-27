@@ -15,7 +15,7 @@ const  userRepository  = require("./repository/userRepository.js");
 const  paymentRepository  = require("./repository/paymentRepository.js");
 const  admin  = require("./middleware/admin.js");
 const  paymentService  = require("./service/paymentService.js");
-const PaymentModel  = require("./model/Payment.js");
+const { PaymentModel } = require("./model/Payment.js")
 const { DATE } = require("sequelize");
 
 const sendReceiptEmail = async (email, sessionId) => {
@@ -205,33 +205,39 @@ const emailTemplate = (sessionId) => `
 `;
 
 async function mailer(email, sessionId) {
-  // Set up Nodemailer transporter
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.REACT_APP_USER,
-      pass: process.env.REACT_APP_PASSWORD,
-    },
-  });
-
-  // Email options
-  const mailOptions = {
-    from: process.env.REACT_APP_USER,
-    to: email,
-    subject: "Payment Request from Hurr Consulting",
-    html: emailTemplate(sessionId)
-  };
-
-  transporter.sendMail(mailOptions, function (error, info) {
-    if (error) {
-      console.log("error", error);
-      return;
-    }
-    // console.log("info", info);
-  });
+  console.log("mailer");
+  try {
+    // Set up Nodemailer transporter
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.REACT_APP_USER,
+        pass: process.env.REACT_APP_PASSWORD,
+      },
+    });
+  
+    // Email options
+    const mailOptions = {
+      from: process.env.REACT_APP_USER,
+      to: email,
+      subject: "Payment Request from Hurr Consulting",
+      html: emailTemplate(sessionId)
+    };
+  
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.log("error", error);
+        return;
+      }
+      console.log("info", info);
+    });
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 app.post("/create-checkout-session", admin, async (req, res) => {
+  console.log("create checkout session")
   const { email, amount } = req.body;
   const user = await userRepository.retrieveOne({ email: email });
   console.log(user);
@@ -260,7 +266,7 @@ app.post("/create-checkout-session", admin, async (req, res) => {
       amount: amount || 0,
     },
   });
-  console.log(session);
+  // console.log(session);
   try {
     await mailer(email, session.id);
     const payment = await paymentRepository.create({

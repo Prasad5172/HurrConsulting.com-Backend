@@ -124,7 +124,8 @@ const login = async (req, res, next) => {
   }
   // console.log(token);
   if (token != null) {
-    var googleUserData = jose.decodeJwt(token);
+    var googleUserData = jwt.decode(token);
+    console.log(googleUserData);
     // return res.send(googleUserData);
     // console.log(googleUserData);
     const { email, name, picture, email_verified } = googleUserData;
