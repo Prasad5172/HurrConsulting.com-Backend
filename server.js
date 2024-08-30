@@ -107,7 +107,7 @@ app.post(
 );
 
 const corsOptions = {
-  origin: "http://localhost:3000",
+  origin: ["http://localhost:3000","https://hurrconsulting.com"]
 };
 app.use(cors(corsOptions));
 app.use(express.json());
