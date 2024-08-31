@@ -1,8 +1,8 @@
 const dotenv = require("dotenv");
 dotenv.config();
 const bcryptjs = require("bcryptjs");
-const {UserModel} = require("../model/user.js");
-const {OtpModel} = require("../model/otp.js");
+const {UserModel} = require("../model");
+const {OtpModel} = require("../model");
 const {  getJwtToken } = require('../helpers/jwt.js');
 const { responseHandler } = require('../helpers/handler.js');
 

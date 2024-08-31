@@ -5,7 +5,6 @@ const { getJwtToken } = require("../helpers/jwt.js");
 const userRepository = require("../repository/userRepository.js");
 const emailService = require("../service/emailService.js");
 const jwt = require("jsonwebtoken");
-// const jose = require("jose");
 const axios = require("axios");
 
 const register = asyncHandler(async (req, res) => {

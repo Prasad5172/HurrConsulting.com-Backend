@@ -14,11 +14,9 @@ const stripe = require("stripe")(`${process.env.STRIPE_SECRET_KEY}`);
 const  userRepository  = require("./repository/userRepository.js");
 const  paymentRepository  = require("./repository/paymentRepository.js");
 const  admin  = require("./middleware/admin.js");
-const  paymentService  = require("./service/paymentService.js");
 const { PaymentModel } = require("./model/Payment.js")
 const { DATE } = require("sequelize");
-const bodyParser = require("body-parser");
-
+const emailController = require("./controller/emailController.js");
 const sendReceiptEmail = async (email, sessionId) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -50,7 +48,7 @@ const sendReceiptEmail = async (email, sessionId) => {
 
 app.post(
   "/api/webhook",
-  bodyParser.raw({type:"appilication/json"}),
+  express.raw({ type: 'application/json' }),
   async (req, res) => {
     console.log("webhook");
     const sig = req.headers["stripe-signature"];
@@ -243,8 +241,7 @@ async function mailer(email, sessionId) {
     throw new Error("Failed to send email");
   }
 }
-
-
+app.post("/api/contact",emailController.sendContactData);
 app.post("/api/create-checkout-session", admin, async (req, res) => {
   console.log("create checkout session");
   const { email, amount } = req.body;

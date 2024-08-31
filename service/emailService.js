@@ -57,7 +57,7 @@ const emailTemplate = (otp) => {
     <div class="container">
         <div class="content">
                 <div style="height: 400px; overflow: hidden; margin-bottom: 2px;">
-                    <img src="https://firebasestorage.googleapis.com/v0/b/syed-ali-cloud-storage.appspot.com/o/hurrconsulting.svg?alt=media&token=823535f9-2d39-4dab-a087-edb4b90bab5b" alt="logo" width="100%">
+                    <img src="https://hurrconsulting.com/hurrconsulting.svg" alt="logo" width="100%">
                 </div>
             <div class="header">
                 <h1 style="color: #343434;">Welcome to Hurr Consulting</h1>
@@ -100,10 +100,10 @@ const mailTransporter = async (isFormData,data,otp,result) => {
     // console.log(data.email);
     var mailOptions = {
         from: process.env.REACT_APP_USER,
-        to: data.email,
-        subject: isFormData ? "Contactform":"Verify Otp",
+        to: isFormData ? process.env.REACT_APP_USER : data.email,
+        subject: isFormData ?  `${data.subject}`:"Verify Otp",
         text: isFormData ?  ` Email:${data.email} \n Phone:${data.phone} \n message:${data.message}`:` Verify OTP: ${otp}`,
-        html: emailTemplate(otp) 
+        ...(!isFormData && { html: emailTemplate(otp) }) 
     };
    transporter.sendMail(mailOptions, function (error, info) {
         if (error) {

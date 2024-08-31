@@ -28,11 +28,11 @@ async function addEventFunc(auth, eventData) {
       description: eventData.description,
       start: {
         dateTime: eventData.start,
-        timeZone: "Asia/Kolkata",
+        timeZone: "America/New_York",
       },
       end: {
         dateTime: eventData.end,
-        timeZone: "Asia/Kolkata",
+        timeZone: "America/New_York",
       },
       conferenceData: {
         createRequest: {
@@ -57,11 +57,11 @@ async function updateEventFunc(auth, eventId, eventData) {
       description: eventData.description,
       start: {
         dateTime: eventData.start,
-        timeZone: eventData.timeZone || "Asia/Kolkata",
+        timeZone: eventData.timeZone || "America/New_York",
       },
       end: {
         dateTime: eventData.end,
-        timeZone: eventData.timeZone || "Asia/Kolkata",
+        timeZone: eventData.timeZone || "America/New_York",
       },
       attendees: eventData.attendees,
     },

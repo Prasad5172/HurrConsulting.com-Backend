@@ -16,7 +16,7 @@ const retrieveAll = asyncHandler(async (req, res) => {
     }
     // Set default sortBy and sortOrder
     const sortField = sortBy || 'request_date'; // Default to 'request_date'
-    const sortDirection = sortOrder === 'desc' ? 'DESC' : 'ASC'; // Default to 'ASC'
+    const sortDirection =  'DESC'; // Default to 'ASC'
 
     // Add order option to query options
     queryOptions.order = [[sortField, sortDirection]];
