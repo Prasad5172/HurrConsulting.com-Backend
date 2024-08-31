@@ -17,6 +17,7 @@ const  admin  = require("./middleware/admin.js");
 const  paymentService  = require("./service/paymentService.js");
 const { PaymentModel } = require("./model/Payment.js")
 const { DATE } = require("sequelize");
+const bodyParser = require("body-parser");
 
 const sendReceiptEmail = async (email, sessionId) => {
   const transporter = nodemailer.createTransport({
@@ -48,8 +49,8 @@ const sendReceiptEmail = async (email, sessionId) => {
 };
 
 app.post(
-  "/webhook",
-  express.raw({ type: "application/json" }),
+  "/api/webhook",
+  bodyParser.raw({type:"appilication/json"}),
   async (req, res) => {
     console.log("webhook");
     const sig = req.headers["stripe-signature"];
@@ -64,6 +65,7 @@ app.post(
     } catch (err) {
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
+
     console.log("event", event);
     var payment = null;
     if (event.type === "checkout.session.completed") {
@@ -112,10 +114,10 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use("/auth",require("./routes/auth.js"))
-app.use("/users",require("./routes/users.js"))
-app.use("/payment",require("./routes/payment.js"))
-app.use("/event",require("./routes/calender.js"))
+app.use("/api/auth",require("./routes/auth.js"))
+app.use("/api/users",require("./routes/users.js"))
+app.use("/api/payment",require("./routes/payment.js"))
+app.use("/api/event",require("./routes/calender.js"))
 
 const emailTemplate = (sessionId) => `
 <!DOCTYPE html>
@@ -171,14 +173,14 @@ const emailTemplate = (sessionId) => `
         <div class="content">
 
             <div style="height: 400px; overflow: hidden; margin-bottom: 2px;">
-               <img src="https://vtm.ai/about-1.jpg" alt="logo" width="100%">
+               <img src="https://hurrconsulting.com/hurrconsulting.svg" alt="logo" width="100%">
             </div>
             <div class="header">
                 <h1 style="color: #343434;">Welcome to Hurr Consulting</h1>
             </div>
             <h1>Payment Request</h1>
             <p>Please click the button below to complete your payment.</p>
-            <a href="http://localhost:3000/redirect-to-checkout/${sessionId}" class="button" style="color: white;">Pay Now</a>
+            <a href="https://hurrconsulting.com/redirect-to-checkout/${sessionId}" class="button" style="color: white;">Pay Now</a>
             <p>Thanks,<br> Team</p>
         </div>
         <div class="footer">
@@ -191,10 +193,10 @@ const emailTemplate = (sessionId) => `
                     width="20" style="width:20px;" alt="Twitter" class="CToWUd" data-bit="iit">
             </div>
             <div>
-                <a style="font-size: small;color: #638df8;" target="_blank" href="http://localhost:3000/contact">Contact
+                <a style="font-size: small;color: #638df8;" target="_blank" href="https://hurrconsulting.com/contact">Contact
                     Us</a>
                 <span style="margin-inline: 5px;">|</span>
-                <a style="font-size: small; color: #638df8;" target="_blank" href="http://localhost:3000/about">About
+                <a style="font-size: small; color: #638df8;" target="_blank" href="https://hurrconsulting.com/about">About
                     Us</a>
             </div>
         </div>
@@ -205,7 +207,7 @@ const emailTemplate = (sessionId) => `
 `;
 
 async function mailer(email, sessionId) {
-  console.log("mailer");
+  console.log("mailer", email, sessionId);
   try {
     // Set up Nodemailer transporter
     const transporter = nodemailer.createTransport({
@@ -215,60 +217,71 @@ async function mailer(email, sessionId) {
         pass: process.env.REACT_APP_PASSWORD,
       },
     });
-  
+    console.log(transporter);
+
     // Email options
     const mailOptions = {
       from: process.env.REACT_APP_USER,
       to: email,
       subject: "Payment Request from Hurr Consulting",
-      html: emailTemplate(sessionId)
+      html: emailTemplate(sessionId),
     };
-  
-    transporter.sendMail(mailOptions, function (error, info) {
-      if (error) {
-        console.log("error", error);
-        return;
-      }
-      console.log("info", info);
+
+    // Send email
+    await new Promise((resolve, reject) => {
+      transporter.sendMail(mailOptions, function (error, info) {
+        if (error) {
+          console.log("error", error);
+          return reject(error);
+        }
+        console.log("info", info);
+        resolve(info);
+      });
     });
   } catch (error) {
-    console.log(error);
+    console.log("Mailer function error:", error);
+    throw new Error("Failed to send email");
   }
 }
 
-app.post("/create-checkout-session", admin, async (req, res) => {
-  console.log("create checkout session")
+
+app.post("/api/create-checkout-session", admin, async (req, res) => {
+  console.log("create checkout session");
   const { email, amount } = req.body;
-  const user = await userRepository.retrieveOne({ email: email });
-  console.log(user);
-  if (!user) {
-    return res.status(400).send("register with email");
-  }
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ["card"],
-    line_items: [
-      {
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: "Appointment Booking",
-          },
-          unit_amount: amount * 100,
-        },
-        quantity: 1,
-      },
-    ],
-    mode: "payment",
-    success_url: "http://localhost:3000",
-    cancel_url: "http://localhost:3000/cancel",
-    metadata: {
-      email: email || "",
-      amount: amount || 0,
-    },
-  });
-  // console.log(session);
+  
   try {
+    const user = await userRepository.retrieveOne({ email: email });
+    if (!user) {
+      return res.status(400).send("Please register with email");
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: "Appointment Booking",
+            },
+            unit_amount: amount * 100,
+          },
+          quantity: 1,
+        },
+      ],
+      mode: "payment",
+      success_url: "https://hurrconsulting.com",
+      cancel_url: "http://hurrconsulting.com/cancel",
+      metadata: {
+        email: email || "",
+        amount: amount || 0,
+      },
+    });
+
+    // Send email using mailer function
     await mailer(email, session.id);
+
+    // Create payment record
     const payment = await paymentRepository.create({
       payment_id: session.id,
       email: email,
@@ -276,17 +289,21 @@ app.post("/create-checkout-session", admin, async (req, res) => {
       status: "PENDING",
       user_id: user.user_id,
     });
-    // console.log(payment);
+
+    console.log(payment);
     res.json({ id: session.id });
+
   } catch (error) {
-    console.log(error);
-    return res
-      .status(500)
-      .json(responseHandler(false, 500, "Server Error", null));
+    console.log("Error in create-checkout-session:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Server Error",
+    });
   }
 });
 
-app.get("/", async (req, res) => {
+
+app.get("/api", async (req, res) => {
   return res.status(200).json("working");
 });
 
@@ -300,10 +317,7 @@ app.all("*",(req,res,next) => {
 app.use((error,req,res,next) => {
   error.statusCode = error.statusCode || 500;
   error.status = error.status || 'error';
- res.status(error.statusCode).json({
-  status:error.status,
-  message : error.message
- });
+ res.status(error.statusCode).json(error);
 })
 
 app.listen(8000, () => {
