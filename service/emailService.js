@@ -65,7 +65,7 @@ const emailTemplate = (otp) => {
             <h1>Verification code</h1>
             <p>Please use the verification code below to sign in.</p>
             <h3>Code:${otp}</h3>
-            <p>Thanks,<br> Team</p>
+            <p>Thanks,<br> Masumah</p>
         </div>
         <div class="footer">
             <p>&copy; 2024 HurrConsulting. All rights reserved.</p>

@@ -179,7 +179,7 @@ const emailTemplate = (sessionId) => `
             <h1>Payment Request</h1>
             <p>Please click the button below to complete your payment.</p>
             <a href="https://hurrconsulting.com/redirect-to-checkout/${sessionId}" class="button" style="color: white;">Pay Now</a>
-            <p>Thanks,<br> Team</p>
+            <p>Thanks,<br> Masumah</p>
         </div>
         <div class="footer">
             <p>&copy; 2024 HurrConsulting. All rights reserved.</p>
@@ -209,7 +209,9 @@ async function mailer(email, sessionId) {
   try {
     // Set up Nodemailer transporter
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,  // or 587 for TLS
+      secure: true, // true for SSL on port 465
       auth: {
         user: process.env.REACT_APP_USER,
         pass: process.env.REACT_APP_PASSWORD,
@@ -257,7 +259,7 @@ app.post("/api/create-checkout-session", admin, async (req, res) => {
       line_items: [
         {
           price_data: {
-            currency: "usd",
+            currency: "gbp",
             product_data: {
               name: "Appointment Booking",
             },
@@ -268,7 +270,7 @@ app.post("/api/create-checkout-session", admin, async (req, res) => {
       ],
       mode: "payment",
       success_url: "https://hurrconsulting.com",
-      cancel_url: "http://hurrconsulting.com/cancel",
+      cancel_url: "https://hurrconsulting.com",
       metadata: {
         email: email || "",
         amount: amount || 0,
