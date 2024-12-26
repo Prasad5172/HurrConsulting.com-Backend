@@ -28,11 +28,11 @@ async function addEventFunc(auth, eventData) {
       description: eventData.description,
       start: {
         dateTime: eventData.start,
-        timeZone: "America/New_York",
+        timeZone: "Europe/London",
       },
       end: {
         dateTime: eventData.end,
-        timeZone: "America/New_York",
+        timeZone: "Europe/London",
       },
       conferenceData: {
         createRequest: {
